@@ -5,8 +5,9 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     database_url: str = "postgresql://postgres:postgres@localhost:5432/interview"
-    pipeline_interval: int = 30
+    pipeline_interval: int = 10
     log_level: str = "DEBUG"
+    data_path: str = "/data"
 
     model_config = {"env_file": ".env"}
 

@@ -3,6 +3,8 @@
 from sqlalchemy import text
 
 from src.db.models import Base
+from src.db.models.pipeline_state import ProcessedFile  # noqa: F401 – registers with Base.metadata
+from src.db.models.raw import RawFileUpload, RawSheetRow  # noqa: F401 – registers with Base.metadata
 
 
 def init_db_schemas(engine):

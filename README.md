@@ -2,7 +2,7 @@
 * Can't parse some field from a xls. Notify + store.
 * CI/CD:
     - pre-commit hooks
-    - ruff
+    - ruff + unused imports
     - tests
     - deploy
     - git revert
@@ -20,6 +20,9 @@
 * pgpool for connections
 * redundancies in dependencies
 * swagger docs
+* `compose watch:` feature documentation and how-to
+* `/tests` for xlsm processing module
+* multiprocessing for `pipeline`
 
 
 # Requirements Detailed
@@ -36,6 +39,42 @@
 * Cache during data load. Always go through cache.
 
 ----
+# Pipeline – XLSM Ingestion
+
+## Overview
+On startup the FastAPI application launches an asyncio background task that runs
+`run_pipeline()` every `PIPELINE_INTERVAL` seconds (default **10**).
+
+## How it works
+
+1. **Scan** – the orchestrator globs `*.xlsm` files under `DATA_PATH` (default `/data`).
+2. **Deduplicate** – each file is hashed with **SHA3-256**.  If the hash already exists
+   in `pipeline_state.processed_files` the file is skipped, regardless of filename.
+3. **Extract** – `openpyxl` opens the workbook with `data_only=True` (resolved cell
+   values, not formulas).  Every sheet is read; row 0 becomes the header; all values
+   are serialised to JSON-safe types (`datetime` → ISO string, `Decimal` → float).
+4. **Load (raw)** – one `raw.file_uploads` record is created, then one
+   `raw.sheet_rows` record per spreadsheet row (all cell data stored as JSONB).
+5. **Persist metadata** – a `pipeline_state.processed_files` record is written with:
+   `fname`, `fpath`, `file_hash` (SHA3-256 hex), `file_size_bytes`, `file_mtime`,
+   `file_ctime`, `processed_at`.
+
+## Configuration
+
+| Env var | Default | Purpose |
+|---|---|---|
+| `DATA_PATH` | `/data` | Directory scanned for `.xlsm` files |
+| `PIPELINE_INTERVAL` | `10` | Seconds between pipeline runs |
+
+## Database schema additions
+
+| Schema | Table | Description |
+|---|---|---|
+| `raw` | `file_uploads` | One row per ingested file |
+| `raw` | `sheet_rows` | One row per spreadsheet row (JSONB `data` column) |
+| `pipeline_state` | `processed_files` | Deduplication + file metadata log |
+
+----
 # DevOps Features
 
 ## Python version sync
@@ -46,7 +85,7 @@ Update `pyproject.toml` file with `requires-python = "==3.12.*"`, then run:
 
 ```bash
 uv python pin 3.12   # updates .python-version
-uv lock              # regenerates uv.lock for the new version
+uv sync              # regenerates uv.lock for the new version
 docker compose up --build --watch
 ```
 

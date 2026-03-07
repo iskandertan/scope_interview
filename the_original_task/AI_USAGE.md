@@ -124,6 +124,16 @@ Deal with depreceated on_event in app.py
 initialize db schemas on the first run
 ```
 
+```
+make sure that pipeline module is executed every 10 seconds.
+
+propose a fool-proof starting point for parsing xlsm files in my pipeline. Make sure that the files are initially processed and all the infor present in the single file is stored in the raw schema
+
+when pipeline runs every 10 seconds, it needs to process files under /data.
+
+every file that's been processed needs to be persisted in the database. Store fname and all file metadata that you can get and file hash. Use the latest sha.
+```
+
 **Format:** PDF, Markdown, screenshots, or text files
 **Location:** [Provide links or attach files here]
 
