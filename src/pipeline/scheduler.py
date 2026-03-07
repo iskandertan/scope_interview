@@ -6,10 +6,10 @@ import logging
 from src.config import settings
 from src.pipeline.orchestrator import run_pipeline
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("uvicorn.error")
 
 
-async def start_scheduler() -> None:
+async def start_etl_scheduler() -> None:
     """Run the pipeline every ``settings.pipeline_interval`` seconds forever."""
     logger.info("Pipeline scheduler started (interval=%ds)", settings.pipeline_interval)
     while True:

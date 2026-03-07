@@ -22,7 +22,7 @@
 * swagger docs
 * `compose watch:` feature documentation and how-to
 * `/tests` for xlsm processing module
-* multiprocessing for `pipeline`
+* multiprocessing for `pipeline`; import concurrent.futures and import asincio?
 
 
 # Requirements Detailed
@@ -39,32 +39,6 @@
 * Cache during data load. Always go through cache.
 
 ----
-# Pipeline – XLSM Ingestion
-
-## Overview
-On startup the FastAPI application launches an asyncio background task that runs
-`run_pipeline()` every `PIPELINE_INTERVAL` seconds (default **10**).
-
-## How it works
-
-1. **Scan** – the orchestrator globs `*.xlsm` files under `DATA_PATH` (default `/data`).
-2. **Deduplicate** – each file is hashed with **SHA3-256**.  If the hash already exists
-   in `pipeline_state.processed_files` the file is skipped, regardless of filename.
-3. **Extract** – `openpyxl` opens the workbook with `data_only=True` (resolved cell
-   values, not formulas).  Every sheet is read; row 0 becomes the header; all values
-   are serialised to JSON-safe types (`datetime` → ISO string, `Decimal` → float).
-4. **Load (raw)** – one `raw.file_uploads` record is created, then one
-   `raw.sheet_rows` record per spreadsheet row (all cell data stored as JSONB).
-5. **Persist metadata** – a `pipeline_state.processed_files` record is written with:
-   `fname`, `fpath`, `file_hash` (SHA3-256 hex), `file_size_bytes`, `file_mtime`,
-   `file_ctime`, `processed_at`.
-
-## Configuration
-
-| Env var | Default | Purpose |
-|---|---|---|
-| `DATA_PATH` | `/data` | Directory scanned for `.xlsm` files |
-| `PIPELINE_INTERVAL` | `10` | Seconds between pipeline runs |
 
 ## Database schema additions
 
@@ -97,7 +71,7 @@ Both `Dockerfile` and `Dockerfile.dev` read `.python-version` at build time via 
 ## DWH - PostgreSQL 15
 Data storage.
 
-## Excelcior - FastApi
+## Excelsior - FastApi
 Monolith 
 
 # What I would change

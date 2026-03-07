@@ -21,7 +21,7 @@ async def run_pipeline() -> None:
     recorded in ``pipeline_state.processed_files`` is skipped even if it has
     been renamed or moved.
     """
-    data_dir = Path(settings.data_path)
+    data_dir: Path = settings.data_path
     if not data_dir.exists():
         logger.warning("Data directory %s does not exist – skipping run", data_dir)
         return
