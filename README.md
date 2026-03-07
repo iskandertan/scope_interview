@@ -23,6 +23,7 @@
 * `compose watch:` feature documentation and how-to
 * `/tests` for xlsm processing module
 * multiprocessing for `pipeline`; import concurrent.futures and import asincio?
+* GET /favicon.ico HTTP/1.1" 404 Not Found
 
 
 ---
@@ -34,7 +35,7 @@ Corporate credit rating data pipeline. Ingests `.xlsm` files dropped into `./dat
 ## Quick Start
 
 ```bash
-docker compose up --build
+docker compose up --build --watch
 ```
 
 API at `http://localhost:8000`. Swagger docs at `http://localhost:8000/docs`.

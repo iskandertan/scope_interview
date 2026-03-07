@@ -3,13 +3,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-engine = None
-SessionLocal = None
+from src.config import settings
 
-
-def init_engine(database_url: str):
-    """Create the engine and session factory. Returns the engine."""
-    global engine, SessionLocal
-    engine = create_engine(database_url)
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    return engine
+engine = create_engine(settings.database_url)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
