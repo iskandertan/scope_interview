@@ -1,5 +1,3 @@
-"""FastAPI application with lifespan management."""
-
 import asyncio
 import logging
 import sys
@@ -32,4 +30,4 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/")
 async def root():
-    return {"name": "scope-interview", "status": "ok"}
+    return {"name": "excelsior", "status": "ok"}
