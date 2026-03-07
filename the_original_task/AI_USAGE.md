@@ -7,7 +7,8 @@ Please complete the sections below honestly. Using AI tools is **acceptable and 
 
 
 ## 1. AI Tools Used
-List all AI coding assistants used.
+Claude Opus 4.6
+Claude Haiku 4.5
 
 
 ## 2. Components Assisted
@@ -29,8 +30,75 @@ Check which parts received AI assistance:
 ## 3. Detailed Description
 For each major component, describe how AI assisted.
 
+1. Create file structure and add boilerplate.
+
 
 ## 4. Chat History / Logs
+1. File structure and boilerplate: (following the request + readme.md upload in a different chat)
+```
+I want this folder structure for my project. Keep the original task
+project/
+├── docker-compose.yml
+├── Dockerfile
+├── requirements.txt
+├── .env
+├── README.md
+│
+├── data/ # Mounted volume — interviewer drops Excel files here
+│ ├── inbox/ # New/unprocessed files go here
+│ └── processed/ # Files moved here after successful processing
+│
+├── src/
+│ ├── init.py
+│ ├── config.py # Settings via pydantic-settings (DB URL, intervals, paths)
+│ │
+│ ├── db/
+│ │ ├── init.py
+│ │ ├── session.py # Engine, SessionLocal factory
+│ │ ├── init_db.py # Creates schemas + tables on startup
+│ │ └── models/
+│ │ ├── init.py
+│ │ ├── raw.py # SQLAlchemy models for raw schema
+│ │ ├── warehouse.py # Dims + facts (star schema)
+│ │ └── pipeline_state.py # Tracks processed files, pipeline runs
+│ │
+│ ├── pipeline/
+│ │ ├── init.py
+│ │ ├── orchestrator.py # run_pipeline() — scans inbox, processes each file
+│ │ ├── extract.py # Excel parsing → Python dicts
+│ │ ├── validate.py # Quality checks → QualityReport objects
+│ │ ├── load_raw.py # Dicts → raw schema tables
+│ │ ├── transform.py # raw schema → warehouse schema (dimensional)
+│ │ └── scheduler.py # asyncio loop (30s) + run_in_executor
+│ │
+│ ├── api/
+│ │ ├── init.py
+│ │ ├── app.py # FastAPI app, lifespan (starts scheduler)
+│ │ ├── dependencies.py # get_db session, common query params
+│ │ ├── routes/
+│ │ │ ├── init.py
+│ │ │ ├── properties.py # Property endpoints
+│ │ │ ├── tenants.py # Tenant endpoints
+│ │ │ ├── leases.py # Lease endpoints
+│ │ │ ├── pipeline.py # POST /pipeline/trigger, GET /pipeline/status
+│ │ │ └── quality.py # GET /quality-reports
+│ │ └── schemas/
+│ │ ├── init.py
+│ │ └── responses.py # Pydantic response models (NOT DB models)
+│ │
+│ └── common/
+│ ├── init.py
+│ ├── hashing.py # File content hashing for dedup
+│ └── logging.py # Logging config
+│
+└── tests/
+├── conftest.py # Fixtures: test DB, test client, sample Excel files
+├── test_extract.py # Unit: Excel parsing edge cases
+├── test_validate.py # Unit: quality checks
+├── test_transform.py # Unit: dimensional model correctness
+├── test_pipeline.py # Integration: full pipeline run
+└── test_api.py # Integration: API endpoints
+```
 Attach or link to chat history logs showing AI interactions.
 
 **Format:** PDF, Markdown, screenshots, or text files
