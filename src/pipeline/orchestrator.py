@@ -1,8 +1,7 @@
-"""Pipeline orchestrator - scans inbox and processes files."""
+"""Pipeline orchestrator - scans data_path and ingests new .xlsm files."""
 
 import logging
 from datetime import datetime, timezone
-from pathlib import Path
 
 from src.common.hashing import compute_file_hash
 from src.config import settings
@@ -15,13 +14,12 @@ logger = logging.getLogger(__name__)
 
 
 async def run_pipeline() -> None:
-    """Scan ``settings.data_path`` for .xlsm files and ingest any not yet seen.
+    """Scan settings.data_path for .xlsm files and ingest any not yet seen.
 
-    Deduplication is by content hash (SHA3-256): a file that has already been
-    recorded in ``pipeline_state.processed_files`` is skipped even if it has
-    been renamed or moved.
+    Deduplication is by SHA3-256 content hash — a renamed/moved file that was
+    already ingested is skipped.
     """
-    data_dir: Path = settings.data_path
+    data_dir = settings.data_path
     if not data_dir.exists():
         logger.warning("Data directory %s does not exist – skipping run", data_dir)
         return
@@ -36,15 +34,8 @@ async def run_pipeline() -> None:
             try:
                 file_hash = compute_file_hash(str(file_path))
 
-                existing = (
-                    session.query(ProcessedFile).filter_by(file_hash=file_hash).first()
-                )
-                if existing:
-                    logger.debug(
-                        "Skipping %s – already processed (hash=%.16s…)",
-                        file_path.name,
-                        file_hash,
-                    )
+                if session.query(ProcessedFile).filter_by(file_hash=file_hash).first():
+                    logger.debug("Skipping %s – already processed", file_path.name)
                     continue
 
                 logger.info("Processing %s", file_path.name)

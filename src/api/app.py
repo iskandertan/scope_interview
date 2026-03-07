@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from src.api.routes import companies, pipeline, snapshots, uploads
 from src.config import settings
 from src.db.init_db import init_db_schemas
 from src.db.session import init_engine
@@ -15,7 +16,7 @@ logger = logging.getLogger("uvicorn.error")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Init database and start pipeline scheduler on app startup"""
+    """Init database and start pipeline scheduler on app startup."""
     logger.info("Python %s", sys.version)
     engine = init_engine(settings.database_url)
     init_db_schemas(engine)
@@ -26,6 +27,11 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+app.include_router(companies.router)
+app.include_router(snapshots.router)
+app.include_router(uploads.router)
+app.include_router(pipeline.router)
 
 
 @app.get("/")

@@ -134,6 +134,10 @@ when pipeline runs every 10 seconds, it needs to process files under /data.
 every file that's been processed needs to be persisted in the database. Store fname and all file metadata that you can get and file hash. Use the latest sha.
 ```
 
+```
+do a filesystem refactor, change names, delete uselsess things. Look at the README.md in /the_original_task folder for reference. Simplify the existing implementations afterwards
+```
+
 **Format:** PDF, Markdown, screenshots, or text files
 **Location:** [Provide links or attach files here]
 

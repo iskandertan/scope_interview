@@ -5,7 +5,6 @@ build/
 dist/
 wheels/
 *.egg-info
-.python-version
 
 # Virtual environments
 .venv
@@ -31,6 +30,5 @@ htmlcov/
 .env.local
 
 # Project-specific
-!data/inbox/.gitkeep
-!data/processed/.gitkeep
 
+!data/.gitkeep

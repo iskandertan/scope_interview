@@ -25,56 +25,121 @@
 * multiprocessing for `pipeline`; import concurrent.futures and import asincio?
 
 
-# Requirements Detailed
-* Extract only MASTER sheet
-    - Fields: 
-        - Company metadata (entity name, sector, country, currency)
-        - Rating methodology information
-        - Industry risk scores and weights
-        - Accounting principles and business year-end data
-    - Field k:v Errors: TODO (The MASTER sheet has a non-standard structure (key-value pairs with "Unnamed" column headers) that requires custom parsing.)
-    - Sheet naming Errors: lower case MASTER, many master_n, master not found
+---
 
-# Open questions:
-* Cache during data load. Always go through cache.
+# Excelsior
 
-----
+Corporate credit rating data pipeline. Ingests `.xlsm` files dropped into `./data/`, stores raw rows in PostgreSQL, and exposes the data via a FastAPI REST API.
 
-## Database schema additions
+## Quick Start
+
+```bash
+docker compose up --build
+```
+
+API at `http://localhost:8000`. Swagger docs at `http://localhost:8000/docs`.
+
+---
+
+## API Endpoints
+
+### Companies
+| Method | Path | Description |
+|---|---|---|
+| GET | `/companies` | List all companies (latest metadata) |
+| GET | `/companies/{id}` | Company details (latest version) |
+| GET | `/companies/{id}/versions` | All versions for a company |
+| GET | `/companies/{id}/history` | Time-series data |
+| GET | `/companies/compare?company_ids=&as_of_date=` | Point-in-time comparison |
+
+### Snapshots
+| Method | Path | Description |
+|---|---|---|
+| GET | `/snapshots` | List snapshots — filterable by `company_id`, `from_date`, `to_date`, `sector`, `country`, `currency` |
+| GET | `/snapshots/latest` | Latest snapshot per company |
+| GET | `/snapshots/{id}` | Specific snapshot |
+
+### Uploads
+| Method | Path | Description |
+|---|---|---|
+| GET | `/uploads` | All ingested files with metadata |
+| GET | `/uploads/stats` | Upload count |
+| GET | `/uploads/{id}` | Specific upload details |
+
+### Pipeline
+| Method | Path | Description |
+|---|---|---|
+| POST | `/pipeline/trigger` | Trigger a pipeline run (async, returns 202) |
+| GET | `/pipeline/status` | Processed file count |
+
+---
+
+## Database Schema
 
 | Schema | Table | Description |
 |---|---|---|
 | `raw` | `file_uploads` | One row per ingested file |
 | `raw` | `sheet_rows` | One row per spreadsheet row (JSONB `data` column) |
-| `pipeline_state` | `processed_files` | Deduplication + file metadata log |
+| `pipeline_state` | `processed_files` | Deduplication log — keyed by SHA3-256 content hash |
 
-----
-# DevOps Features
+Schemas and tables are created at app startup (`src/db/init_db.py`).
 
-## Python version sync
-The Python version is controlled from a single source of truth: `.python-version` (managed by `uv`).
+---
 
-To bump the Python version across all environments:
-Update `pyproject.toml` file with `requires-python = "==3.12.*"`, then run:
+## Pipeline
 
-```bash
-uv python pin 3.12   # updates .python-version
-uv sync              # regenerates uv.lock for the new version
-docker compose up --build --watch
+The ETL scheduler runs every `pipeline_interval` seconds (default: 10s).
+
+**Stages:** scan `./data/*.xlsm` → hash (SHA3-256) → skip if already in `processed_files` → extract all sheets → load to `raw` schema → record in `processed_files`.
+
+Deduplication is content-based: renaming or moving a file does not cause re-ingestion.
+
+---
+
+## Configuration (`.env`)
+
+```
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=excelsior
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/excelsior
+LOG_LEVEL=INFO
 ```
 
-Both `Dockerfile` and `Dockerfile.dev` read `.python-version` at build time via `uv python install`, so no version is hardcoded in any Dockerfile. The running Python version is logged at FastAPI startup.
+Add `PIPELINE_INTERVAL=<seconds>` to override the 10s default.
 
-----
-# Tech Stack
+---
 
-## DWH - PostgreSQL 15
-Data storage.
+## DevOps
 
-## Excelsior - FastApi
-Monolith 
+### Python version sync
+The Python version is the single source of truth in `.python-version` (managed by `uv`). To bump:
 
-# What I would change
-Break down fastapi monolith. To have a better separation of concerns and remove a single point of failure for the entire data platform. My proposed architecture: Airflow -> DWH -> FastApi. 
-* Airflow would continuously watch the data source location. Launch DAGs whenver there's a new file. DAGs would be responsible for loading data into a DWH and transitioning it through Data Layers.
-* FastApi app would only be responsible for returning the data and doing the response caching.
+```bash
+uv python pin 3.12      # updates .python-version
+uv sync                 # regenerates uv.lock
+docker compose up --build
+```
+
+Both `Dockerfile` and `Dockerfile.dev` read `.python-version` at build time — no hardcoded version anywhere. The running Python version is logged at FastAPI startup.
+
+### Hot reload (development)
+`docker compose up` uses `Dockerfile.dev` with uvicorn `--reload` and `compose watch` for live sync of `./src` into the container.
+
+---
+
+## Tech Stack
+
+- **FastAPI** — REST API, OpenAPI/Swagger docs
+- **PostgreSQL 15** — data warehouse
+- **SQLAlchemy 2** — ORM + schema management
+- **openpyxl** — `.xlsm`/`.xlsx` parsing
+- **uv** — Python packaging and version management
+
+---
+
+## What I Would Change
+
+Break the FastAPI monolith into separate concerns. Proposed architecture: **Airflow → DWH → FastAPI**.
+- Airflow: watches `./data/`, launches DAGs per new file, manages ETL and data layer transitions.
+- FastAPI: read-only data access + response caching only.
