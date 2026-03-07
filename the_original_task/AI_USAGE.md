@@ -34,6 +34,8 @@ For each major component, describe how AI assisted.
 
 
 ## 4. Chat History / Logs
+Attach or link to chat history logs showing AI interactions.
+
 1. File structure and boilerplate: (following the request + readme.md upload in a different chat)
 ```
 I want this folder structure for my project. Keep the original task
@@ -99,7 +101,14 @@ project/
 ├── test_pipeline.py # Integration: full pipeline run
 └── test_api.py # Integration: API endpoints
 ```
-Attach or link to chat history logs showing AI interactions.
+
+
+```
+Please make sure that my uv environemnt for docker is compliant with
+https://docs.astral.sh/uv/guides/integration/docker/
+
+My goal is to have the container rebuild on changes to source code. After file has been saved.
+```
 
 **Format:** PDF, Markdown, screenshots, or text files
 **Location:** [Provide links or attach files here]

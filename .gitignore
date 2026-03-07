@@ -5,6 +5,32 @@ build/
 dist/
 wheels/
 *.egg-info
+.python-version
 
 # Virtual environments
 .venv
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.hypothesis/
+
+# Environment
+.env
+.env.local
+
+# Project-specific
+!data/inbox/.gitkeep
+!data/processed/.gitkeep
+
