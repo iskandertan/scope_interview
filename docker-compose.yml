@@ -24,10 +24,7 @@ services:
       PIPELINE_INTERVAL: ${PIPELINE_INTERVAL:-30}
       LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
     volumes:
-      - ./src:/app/src
       - ./data:/app/data
-      # Preserve the container's .venv — do not overwrite with host's
-      - /app/.venv
     ports:
       - "8000:8000"
     depends_on:
@@ -47,6 +44,8 @@ services:
           path: ./pyproject.toml
         - action: rebuild
           path: ./uv.lock
+        - action: rebuild
+          path: ./.python-version
 
 volumes:
   postgres_data:

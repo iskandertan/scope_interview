@@ -12,6 +12,9 @@
 * pipeline notificaion
 * `docker-compose up` start-up.
 * delete all containers and start from scratch for testing
+* check for redundancies at the end
+* `.venv` handling
+* delete useless ai comments
 
 
 # Requirements Detailed
@@ -26,6 +29,23 @@
 
 # Open questions:
 * Cache during data load. Always go through cache.
+
+----
+# DevOps Features
+
+## Python version sync
+The Python version is controlled from a single source of truth: `.python-version` (managed by `uv`).
+
+To bump the Python version across all environments:
+Update `pyproject.toml` file with `requires-python = "==3.12.*"`, then run:
+
+```bash
+uv python pin 3.12   # updates .python-version
+uv lock              # regenerates uv.lock for the new version
+docker compose up --build --watch
+```
+
+Both `Dockerfile` and `Dockerfile.dev` read `.python-version` at build time via `uv python install`, so no version is hardcoded in any Dockerfile. The running Python version is logged at FastAPI startup.
 
 ----
 # Tech Stack

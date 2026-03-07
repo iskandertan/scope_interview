@@ -1,7 +1,8 @@
 # Production Dockerfile: Multi-stage build with UV best practices
 # Based on: https://docs.astral.sh/uv/guides/integration/docker/
+# Python version is read from .python-version (managed by uv)
 
-FROM python:3.10-slim AS builder
+FROM debian:bookworm-slim AS builder
 
 # Copy UV from official image
 COPY --from=ghcr.io/astral-sh/uv:0.10.9 /uv /uvx /bin/
@@ -10,6 +11,10 @@ WORKDIR /app
 
 # Silence link-mode warnings when using cache mounts
 ENV UV_LINK_MODE=copy
+
+# Install the pinned Python version (reads .python-version)
+COPY .python-version .
+RUN uv python install
 
 # Install dependencies with cache mount (only when pyproject.toml/uv.lock change)
 RUN --mount=type=cache,target=/root/.cache/uv \
@@ -23,11 +28,12 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-editable --compile-bytecode
 
 # Runtime stage: minimal image with only virtual environment
-FROM python:3.10-slim
+FROM debian:bookworm-slim
 
 WORKDIR /app
 
-# Copy .venv from builder (source code not included in production image)
+# Copy uv-managed Python and .venv from builder
+COPY --from=builder /root/.local/share/uv /root/.local/share/uv
 COPY --from=builder /app/.venv /app/.venv
 
 # Set up environment
