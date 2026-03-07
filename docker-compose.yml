@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRES_DB: ${DB_NAME:-interview}
+      POSTGRES_DB: ${DB_NAME:-excelsior}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -20,8 +20,7 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     environment:
-      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-interview}
-      PIPELINE_INTERVAL: ${PIPELINE_INTERVAL:-30}
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-excelsior}
       LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
     volumes:
       - ./data:/app/data
