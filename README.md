@@ -15,6 +15,11 @@
 * check for redundancies at the end
 * `.venv` handling
 * delete useless ai comments
+* Test `Dockerfile`
+* uv env separation. `dev` for ruff and tests.
+* pgpool for connections
+* redundancies in dependencies
+* swagger docs
 
 
 # Requirements Detailed

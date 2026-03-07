@@ -1,10 +1,15 @@
 """Initialize database schemas and tables on startup."""
-from src.db.models import raw, warehouse, pipeline_state
+
+from sqlalchemy import text
+
+from src.db.models import Base
 
 
 def init_db_schemas(engine):
-    """Create all schemas and tables."""
-    # Create raw schema
-    # Create warehouse schema
-    # Create pipeline_state schema
-    pass
+    """Create schemas and all tables."""
+    with engine.connect() as conn:
+        conn.execute(text("CREATE SCHEMA IF NOT EXISTS raw"))
+        conn.execute(text("CREATE SCHEMA IF NOT EXISTS warehouse"))
+        conn.execute(text("CREATE SCHEMA IF NOT EXISTS pipeline_state"))
+        conn.commit()
+    Base.metadata.create_all(bind=engine)

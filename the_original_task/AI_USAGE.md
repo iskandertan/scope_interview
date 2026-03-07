@@ -116,6 +116,14 @@ Make sure that python versions in docker envs are synced to whatever is specifie
 is there a way to control it from a single place? I only want to make a single change. So for instance, If i ever decide to bump my python version, i only need to do the uv command for that and the docker envs will be updated automatically. It would be nice if i could control ARG PYTHON_VERSION=3.10 not from the dockerfile
 ```
 
+```
+make sure that my home route for a fast api app returns something.
+
+Deal with depreceated on_event in app.py
+
+initialize db schemas on the first run
+```
+
 **Format:** PDF, Markdown, screenshots, or text files
 **Location:** [Provide links or attach files here]
 
