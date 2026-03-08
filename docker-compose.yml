@@ -21,7 +21,7 @@ services:
       dockerfile: Dockerfile.dev
     environment:
       DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-excelsior}
-      LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
     volumes:
       - ./data:/app/data
     ports:
@@ -29,8 +29,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: uvicorn src.api.app:app --host 0.0.0.0 --port 8000 --reload
-    # Alternative: use `docker compose watch` (Compose 2.22.0+)
+    command: uvicorn src.api.app:app --host 0.0.0.0 --port 8000 --reload --log-level ${LOG_LEVEL}
     develop:
       watch:
         - action: sync

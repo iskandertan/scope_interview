@@ -6,7 +6,7 @@ import logging
 from src.config import settings
 from src.pipeline.orchestrator import run_pipeline
 
-logger = logging.getLogger("uvicorn.error")
+logger = logging.getLogger(__name__)
 
 
 async def start_etl_scheduler() -> None:

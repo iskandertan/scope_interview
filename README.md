@@ -24,6 +24,9 @@
 * `/tests` for xlsm processing module
 * multiprocessing for `pipeline`; import concurrent.futures and import asincio?
 * GET /favicon.ico HTTP/1.1" 404 Not Found
+* The correct way to declare all tables at start-up using sqlalch orm. Basemodel.
+* `docker-compose down -v && docker-compose rm -f -v && docker compose down --rmi all && docker-compose build --no-cache && docker-compose up -d`
+* `fs` abstraction when working with xlsm files
 
 
 ---
@@ -126,6 +129,9 @@ Both `Dockerfile` and `Dockerfile.dev` read `.python-version` at build time — 
 
 ### Hot reload (development)
 `docker compose up` uses `Dockerfile.dev` with uvicorn `--reload` and `compose watch` for live sync of `./src` into the container.
+
+### Logging
+Log level is set by the LOG_LEVEL env var. #TODO: address log level in config.py + docker-compose set up.
 
 ---
 
