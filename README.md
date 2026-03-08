@@ -87,7 +87,11 @@ API at `http://localhost:8000`. Swagger docs at `http://localhost:8000/docs`.
 | `raw` | `sheet_rows` | One row per spreadsheet row (JSONB `data` column) |
 | `pipeline_state` | `processed_files` | Deduplication log — keyed by SHA3-256 content hash |
 
-Schemas and tables are created at app startup (`src/db/init_db.py`).
+Schemas and tables are created at app startup via `init_db(engine)` (`src/db/init_db.py`):
+- `src/db/schemas.py` — declares all PostgreSQL schemas (`raw`, `warehouse`, `pipeline_state`) and creates them with SQLAlchemy `CreateSchema` DDL.
+- `src/db/tables.py` — imports all ORM models and calls `Base.metadata.create_all`. Add new models here to have them created at startup.
+
+Schemas must exist before tables, so `init_db` always runs `create_schemas` first.
 
 ---
 

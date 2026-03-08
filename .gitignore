@@ -30,5 +30,5 @@ htmlcov/
 .env.local
 
 # Project-specific
-
+data/parsed
 !data/.gitkeep
