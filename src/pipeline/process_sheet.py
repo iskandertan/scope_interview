@@ -15,10 +15,30 @@ MASTER_SHEET = "MASTER"
 
 
 def extract_sheet_data(filepath: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Extract data from the MASTER sheet of the given Excel file.
-    SCOPE_MARKER is used to split the sheet into 2 dataframes.
-    The first dataframe contains all rows above the marker,
-    and the second contains the marker row and all rows below it.
+    """Read the MASTER worksheet and split it into key-value and timeseries sections.
+
+    The sheet is cleaned by removing fully empty rows/columns, then split at the
+    first row containing `SCOPE_MARKER` (match in any column):
+
+    - `df_kv`: rows above the marker
+    - `df_ts`: marker row and all rows below it
+
+    If the last column of `df_ts` contains only non-null values equal to
+    `"Locked"` (case-insensitive, surrounding whitespace ignored), that column is
+    dropped.
+
+    The resulting DataFrames are also saved to `<data_path>/parsed` as:
+    `<stem>_kv.xlsx` and `<stem>_ts.xlsx` (only if the files do not already exist).
+
+    Args:
+        filepath: Path to the source Excel workbook.
+
+    Returns:
+        A tuple `(df_kv, df_ts)`.
+
+    Raises:
+        ValueError: If `filepath` is not a `Path`.
+        ValueError: If `SCOPE_MARKER` is not found in the MASTER sheet.
     """
 
     if not isinstance(filepath, Path):
@@ -45,7 +65,9 @@ def extract_sheet_data(filepath: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
         last_col = df_ts.iloc[:, -1]
         non_null = last_col.dropna()
         if not non_null.empty:
-            all_locked = non_null.astype(str).str.strip().str.casefold().eq("locked").all()
+            all_locked = (
+                non_null.astype(str).str.strip().str.casefold().eq("locked").all()
+            )
             if all_locked:
                 df_ts = df_ts.iloc[:, :-1]
 
