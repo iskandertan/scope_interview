@@ -27,6 +27,7 @@
 * The correct way to declare all tables at start-up using sqlalch orm. Basemodel.
 * `docker-compose down -v && docker-compose rm -f -v && docker compose down --rmi all && docker-compose build --no-cache && docker-compose up -d`
 * `fs` abstraction when working with xlsm files
+* add a section on complicated file structure and possible uses of `openpyxl` lib.
 
 
 ---
@@ -97,6 +98,20 @@ The ETL scheduler runs every `pipeline_interval` seconds (default: 10s).
 **Stages:** scan `./data/*.xlsm` → hash (SHA3-256) → skip if already in `processed_files` → extract all sheets → load to `raw` schema → record in `processed_files`.
 
 Deduplication is content-based: renaming or moving a file does not cause re-ingestion.
+
+### `extract_sheet_data(filepath)`
+
+Reads an `.xlsm` file into a single `dtype=object` DataFrame, drops all-`None` rows and columns, then splits on the first row containing the exact string `[Scope Credit Metrics]`.
+
+```python
+df_kv, df_ts = extract_sheet_data(Path("data/corporates_A_1.xlsm"))
+# df_kv — key-value rows before the [Scope Credit Metrics] marker (company metadata)
+# df_ts — timeseries rows from [Scope Credit Metrics] marker onward (temporal metrics)
+```
+
+Before persisting, the timeseries DataFrame drops its last column if all non-null values in that column are `Locked`.
+
+Both sections are written to `data/parsed/<stem>_kv.xlsx` and `data/parsed/<stem>_ts.xlsx` on the first run; subsequent runs skip files that already exist.
 
 ---
 
