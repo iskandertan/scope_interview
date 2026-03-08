@@ -2,7 +2,7 @@
 
 from sqlalchemy.orm import Session
 
-from src.db.models.raw import RawFileUpload, RawSheetRow
+from src.db.models.tables import RawFileUpload, RawSheetRow
 
 
 def load_raw_schema(

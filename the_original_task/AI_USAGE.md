@@ -138,6 +138,10 @@ every file that's been processed needs to be persisted in the database. Store fn
 do a filesystem refactor, change names, delete uselsess things. Look at the README.md in /the_original_task folder for reference. Simplify the existing implementations afterwards
 ```
 
+```
+manage schemas using sqlalch orm. do this inside src/db. Manage all schemas in one file and all tables in another. Migrate the existin things
+```
+
 **Format:** PDF, Markdown, screenshots, or text files
 **Location:** [Provide links or attach files here]
 

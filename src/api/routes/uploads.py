@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from src.api.dependencies import get_db
-from src.db.models.raw import RawFileUpload
+from src.db.models.tables import RawFileUpload
 
 router = APIRouter(prefix="/uploads", tags=["uploads"])
 

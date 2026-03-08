@@ -1,17 +1,16 @@
-"""Initialize database schemas and tables on startup."""
+"""Database initialisation entry point.
 
-from sqlalchemy import text
+Calls `create_schemas` then `create_tables` so every schema exists before
+SQLAlchemy attempts to create schema-qualified tables.
+"""
 
-from src.db.models import Base
-from src.db.models.pipeline_state import ProcessedFile  # noqa: F401 – registers with Base.metadata
-from src.db.models.raw import RawFileUpload, RawSheetRow  # noqa: F401 – registers with Base.metadata
+from sqlalchemy import Engine
+
+from src.db.models.schemas import create_schemas
+from src.db.models.tables import create_tables
 
 
-def init_db_schemas(engine):
-    """Create schemas and all tables."""
-    with engine.connect() as conn:
-        conn.execute(text("CREATE SCHEMA IF NOT EXISTS raw"))
-        conn.execute(text("CREATE SCHEMA IF NOT EXISTS warehouse"))
-        conn.execute(text("CREATE SCHEMA IF NOT EXISTS pipeline_state"))
-        conn.commit()
-    Base.metadata.create_all(bind=engine)
+def init_db(engine: Engine) -> None:
+    """Create all schemas and tables; safe to call on every startup."""
+    create_schemas(engine)
+    create_tables(engine)

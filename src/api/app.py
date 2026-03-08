@@ -7,7 +7,7 @@ from fastapi import FastAPI
 
 from src.api.routes import companies, snapshots, uploads
 from src.config import settings
-from src.db.init_db import init_db_schemas
+from src.db.init_db import init_db
 from src.db.session import engine
 from src.pipeline.scheduler import start_etl_scheduler
 
@@ -24,7 +24,7 @@ async def lifespan(app: FastAPI):
         force=True,
     )
     logger.info("Python %s", sys.version)
-    init_db_schemas(engine)
+    init_db(engine)
     logger.info("Database schemas initialized")
     scheduler_task = asyncio.create_task(start_etl_scheduler())
     yield
