@@ -9,5 +9,6 @@ dependencies = [
     "pydantic-settings>=2.0",
     "sqlalchemy>=2.0",
     "psycopg2-binary>=2.9",
-    "openpyxl>=3.1",
+    "pandas[excel]>=2.3.3",
+    "pandas-stubs>=2.3.3.260113",
 ]

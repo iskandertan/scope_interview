@@ -1,62 +1,68 @@
-"""Extract data from Excel files."""
+"""Excel extraction utilities."""
 
-import datetime
-from decimal import Decimal
+import logging
 from pathlib import Path
-from typing import Any
 
-import openpyxl
+import pandas as pd
 
-
-def _serialize_cell(value: Any) -> Any:
-    """Convert a cell value to a JSON-serialisable type."""
-    if isinstance(value, (datetime.datetime, datetime.date, datetime.time)):
-        return value.isoformat()
-    if isinstance(value, Decimal):
-        return float(value)
-    return value
+from src.config import settings
 
 
-def extract_excel(file_path: str) -> dict[str, list[dict]]:
-    """Parse an xlsm/xlsx file and return all sheet data as a dict of sheet_name → rows.
+logger = logging.getLogger(__name__)
 
-    Each row is a dict mapping column headers (row 0) to cell values.
-    All values are JSON-serialisable.  Formulas are resolved to their cached
-    values via ``data_only=True``.
+SCOPE_MARKER = "[Scope Credit Metrics]"
+MASTER_SHEET = "MASTER"
+
+
+def extract_sheet_data(filepath: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Extract data from the MASTER sheet of the given Excel file.
+    SCOPE_MARKER is used to split the sheet into 2 dataframes.
+    The first dataframe contains all rows above the marker,
+    and the second contains the marker row and all rows below it.
     """
-    path = Path(file_path)
-    wb = openpyxl.load_workbook(path, data_only=True)
 
-    result: dict[str, list[dict]] = {}
+    if not isinstance(filepath, Path):
+        raise ValueError(f"Expected a Path object, got {type(filepath)}")
 
-    for sheet_name in wb.sheetnames:
-        ws = wb[sheet_name]
-        rows_iter = ws.iter_rows(values_only=True)
+    df = pd.read_excel(filepath, sheet_name=MASTER_SHEET, dtype=object, header=None)
 
-        try:
-            raw_headers = next(rows_iter)
-        except StopIteration:
-            result[sheet_name] = []
-            continue
+    # Drop columns and rows where every value is None/NaN
+    df = df.dropna(axis=1, how="all").dropna(axis=0, how="all").reset_index(drop=True)
 
-        # Build header list – fall back to positional names for blank/duplicate cells
-        seen: dict[str, int] = {}
-        headers: list[str] = []
-        for i, h in enumerate(raw_headers):
-            name = str(h).strip() if h is not None else f"col_{i}"
-            if name in seen:
-                seen[name] += 1
-                name = f"{name}_{seen[name]}"
-            else:
-                seen[name] = 0
-            headers.append(name)
+    mask = df.eq(SCOPE_MARKER).any(axis=1)  # type: ignore[arg-type]
+    matches = df.index[mask].tolist()
 
-        sheet_rows: list[dict] = []
-        for row in rows_iter:
-            serialised = {headers[i]: _serialize_cell(v) for i, v in enumerate(row)}
-            sheet_rows.append(serialised)
+    if not matches:
+        raise ValueError(f"Marker '{SCOPE_MARKER}' not found in {filepath.name}")
 
-        result[sheet_name] = sheet_rows
+    split_idx = int(matches[0])
 
-    wb.close()
-    return result
+    df_kv = df.iloc[:split_idx].reset_index(drop=True)
+    df_ts = df.iloc[split_idx:].reset_index(drop=True)
+
+    # If the last timeseries column is entirely "Locked", drop it.
+    if not df_ts.empty and len(df_ts.columns) > 0:
+        last_col = df_ts.iloc[:, -1]
+        non_null = last_col.dropna()
+        if not non_null.empty:
+            all_locked = non_null.astype(str).str.strip().str.casefold().eq("locked").all()
+            if all_locked:
+                df_ts = df_ts.iloc[:, :-1]
+
+    # Persist to data/parsed
+    parsed_dir = settings.data_path / "parsed"
+    parsed_dir.mkdir(parents=True, exist_ok=True)
+
+    stem = filepath.stem
+    kv_path = parsed_dir / f"{stem}_kv.xlsx"
+    ts_path = parsed_dir / f"{stem}_ts.xlsx"
+
+    if not kv_path.exists():
+        df_kv.to_excel(kv_path, index=False, header=False)
+        logger.info(f"Saved {kv_path}")
+
+    if not ts_path.exists():
+        df_ts.to_excel(ts_path, index=False, header=False)
+        logger.info(f"Saved {ts_path}")
+
+    return df_kv, df_ts
