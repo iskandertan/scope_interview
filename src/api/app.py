@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from src.api.routes import companies, pipeline, snapshots, uploads
+from src.api.routes import companies, snapshots, uploads
 from src.config import settings
 from src.db.init_db import init_db_schemas
 from src.db.session import engine
@@ -36,7 +36,6 @@ app = FastAPI(lifespan=lifespan)
 app.include_router(companies.router)
 app.include_router(snapshots.router)
 app.include_router(uploads.router)
-app.include_router(pipeline.router)
 
 
 @app.get("/")
