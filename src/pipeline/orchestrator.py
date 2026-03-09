@@ -8,24 +8,25 @@ from src.pipeline.extract_file_metadata import get_metadata
 
 from src.db.models.tables import RawExcel, FileMetadata
 
-from src.pipeline.source_dtypes import SrcFileMetadata, SrcRawExcel
+from src.pipeline.data_layers import SrcFileMetadata, SrcRawExcel
 
 logger = logging.getLogger(__name__)
 
 
 async def run_pipeline() -> None:
+    # TODO: document pipeline logic
     data_dir = settings.data_path
     if not data_dir.exists():
         logger.warning("Data directory %s does not exist - skipping run", data_dir)
         return
 
+    # Processing raw data
     for f in data_dir.glob("*.xls*"):  # TODO: any excel file?
         metadata: SrcFileMetadata = get_metadata(f)  # TODO: value of the metadata cls?
         raw_excel: SrcRawExcel = extract_sheet_data(data_dir / f)
         logger.debug(
             f"\nMetadata:\n{metadata}\nKV_DICT:\n{raw_excel.key_values}\nTS_DICT:\n{raw_excel.timeseries}\n"
         )
-
         populate_raw_layer(metadata, raw_excel, f)
 
     return None
