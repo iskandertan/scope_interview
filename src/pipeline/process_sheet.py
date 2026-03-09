@@ -6,6 +6,7 @@ from pathlib import Path
 import pandas as pd
 
 from src.config import settings
+from src.pipeline.source_dtypes import SrcRawExcel
 
 
 logger = logging.getLogger(__name__)
@@ -14,15 +15,8 @@ SPLIT_MARKER = "[Scope Credit Metrics]"
 MASTER_SHEET = "MASTER"
 
 
-def extract_sheet_data(
-    filepath: Path,
-) -> tuple[dict[str, list[str]], dict[str, dict]]:
+def extract_sheet_data(filepath: Path) -> SrcRawExcel:
     """Split the MASTER sheet into key-value and timeseries sections at `SPLIT_MARKER`.
-
-    Returns `(kv_dict, ts_dict)`:
-    - `kv_dict`: `{row_label: [values...]}` for rows above the marker.
-    - `ts_dict`: `{metric: {col_header: value, ...}}` for rows at/below the marker.
-
     Raises `ValueError` if `filepath` is not a `Path` or the marker is not found.
     """
 
@@ -53,7 +47,7 @@ def extract_sheet_data(
     # Get ts_dict
     ts_dict = df_ts.set_index(df_ts.columns[0]).to_dict("index")
 
-    return kv_dict, ts_dict
+    return SrcRawExcel(key_values=kv_dict, timeseries=ts_dict)
 
 
 def handle_industry_risk_nesting(kv_dict: dict) -> dict:

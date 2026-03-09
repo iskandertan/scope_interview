@@ -142,6 +142,21 @@ do a filesystem refactor, change names, delete uselsess things. Look at the READ
 manage schemas using sqlalch orm. do this inside src/db. Manage all schemas in one file and all tables in another. Migrate the existin things
 ```
 
+```
+create a dataclass for this 
+
+class RawExcel(Base):
+    __tablename__ = "sheet"
+    __table_args__ = {"schema": "raw"}
+
+    file_id: Mapped[int] = mapped_column(
+        INTEGER, ForeignKey("file_uploads.file_metadata.id"), primary_key=True
+    )
+    key_values = mapped_column(JSON, nullable=False)
+    timeseries = mapped_column(JSON, nullable=False)
+    was_processed = mapped_column(BOOLEAN, nullable=False, default=False)
+```
+
 **Format:** PDF, Markdown, screenshots, or text files
 **Location:** [Provide links or attach files here]
 

@@ -8,7 +8,7 @@ from src.pipeline.extract_file_metadata import get_metadata
 
 from src.db.models.tables import RawExcel, FileMetadata
 
-from src.pipeline.source_dtypes import SrcFileMetadata
+from src.pipeline.source_dtypes import SrcFileMetadata, SrcRawExcel
 
 logger = logging.getLogger(__name__)
 
@@ -21,19 +21,17 @@ async def run_pipeline() -> None:
 
     for f in data_dir.glob("*.xls*"):  # TODO: any excel file?
         metadata: SrcFileMetadata = get_metadata(f)  # TODO: value of the metadata cls?
-        kv_dict, ts_dict = extract_sheet_data(data_dir / f)
+        raw_excel: SrcRawExcel = extract_sheet_data(data_dir / f)
         logger.debug(
-            f"\nMetadata:\n{metadata}\nKV_DICT:\n{kv_dict}\nTS_DICT:\n{ts_dict}\n"
+            f"\nMetadata:\n{metadata}\nKV_DICT:\n{raw_excel.key_values}\nTS_DICT:\n{raw_excel.timeseries}\n"
         )
 
-        populate_raw_layer(metadata, kv_dict, ts_dict, f)
+        populate_raw_layer(metadata, raw_excel, f)
 
     return None
 
 
-def populate_raw_layer(
-    metadata: SrcFileMetadata, kv_dict: dict, ts_dict: dict, fpath: Path
-):
+def populate_raw_layer(metadata: SrcFileMetadata, raw_excel: SrcRawExcel, fpath: Path):
     """Opens a transaction to populate class FileMetadata and class RawExcel tables.
     Rollback on any exception."""
     # TODO: dealing with and detecting rollbacks.
@@ -49,8 +47,6 @@ def populate_raw_layer(
         logger.debug(f"Saved metadata for {fpath.name} (id={record.id})")
 
         # RawExcel record
-        raw_excel_record = RawExcel(
-            file_id=record.id, key_values=kv_dict, timeseries=ts_dict
-        )
-        session.add(raw_excel_record)
+        sheet = raw_excel.to_orm(file_id=record.id)
+        session.add(sheet)
         logger.debug(f"Saved raw data for {fpath.name} (id={record.id})")
