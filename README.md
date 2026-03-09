@@ -28,6 +28,15 @@
 * `docker-compose down -v && docker-compose rm -f -v && docker compose down --rmi all && docker-compose build --no-cache && docker-compose up -d`
 * `fs` abstraction when working with xlsm files
 * add a section on complicated file structure and possible uses of `openpyxl` lib.
+* Manage bad filenames
+* Debug logs for development in docker compose.
+* Disable save_dfs() in process_sheet
+* Module and file level docs
+* Document data layers concept
+* The importance of preservation of numerical precision
+* Pydantic instead of `@dataclass` on src cls
+* ABCs for `source_dtypes.py`? 
+* src classes for readability
 
 
 ---

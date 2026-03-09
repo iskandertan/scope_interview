@@ -30,5 +30,6 @@ htmlcov/
 .env.local
 
 # Project-specific
-data/parsed
-!data/.gitkeep
+# Ignore everything in data/debug except .gitkeep
+data/debug/*
+!data/debug/.gitkeep
