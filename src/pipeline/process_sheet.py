@@ -48,11 +48,49 @@ def extract_sheet_data(
     kv_dict: dict[str, list[str]] = {}
     for _, row in df_kv.iterrows():
         kv_dict[str(row.iloc[0])] = [str(v) for v in row.iloc[1:] if pd.notna(v)]
+    kv_dict = handle_industry_risk_nesting(kv_dict)
 
     # Get ts_dict
     ts_dict = df_ts.set_index(df_ts.columns[0]).to_dict("index")
 
     return kv_dict, ts_dict
+
+
+def handle_industry_risk_nesting(kv_dict: dict) -> dict:
+    """
+    Group properties under "Industry Risk" into nested dicts.
+    Everything between "Industry Risk" (excluding) and "Segmentation Criteria" (excluding) is
+    included in the Industry Risk group.
+    """
+
+    def norm(k: str) -> str:
+        return k.strip().casefold()
+
+    keys = list(kv_dict.keys())
+    normed = [norm(k) for k in keys]
+
+    if "industry risk" not in normed:
+        return kv_dict
+
+    start = normed.index("industry risk")
+    end = (
+        normed.index("segmentation criteria", start)
+        if "segmentation criteria" in normed[start:]
+        else len(keys)
+    )
+
+    industry_key = keys[start]
+    prop_keys = keys[start + 1 : end]
+    industry_names = kv_dict[industry_key]
+
+    kv_dict[industry_key] = [
+        {name: {pk: kv_dict[pk][i] for pk in prop_keys if i < len(kv_dict[pk])}}
+        for i, name in enumerate(industry_names)
+    ]
+    for pk in prop_keys:
+        del kv_dict[pk]
+
+    return kv_dict
 
 
 def split_dfs(df, split_idx):
@@ -93,7 +131,8 @@ def get_split_marker_row_index(df: pd.DataFrame, marker=SPLIT_MARKER) -> int:
 
 
 def save_dfs(df_kv: pd.DataFrame, df_ts: pd.DataFrame, filepath: Path) -> None:
-    """Save the given DataFrames to Excel files in the parsed directory."""
+    """Save the given DataFrames to Excel files in the parsed directory.
+    Used for debugging to see what the split DFs look like"""
     parsed_dir = settings.data_path / "debug"
     parsed_dir.mkdir(parents=True, exist_ok=True)
 
