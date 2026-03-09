@@ -26,12 +26,12 @@ def extract_sheet_data(filepath: Path) -> SrcRawExcel:
     try:
         df = pd.read_excel(filepath, sheet_name=MASTER_SHEET, dtype=object, header=None)
     except ValueError as exc:
-        # TODO: handle this case
+        # TODO: handle "MASTER" sheet not found
+        # TODO: try "master" lowercase and then raise.
         if "Worksheet named" in str(exc) and f"'{MASTER_SHEET}'" in str(exc):
             logger.warning(
                 f"Worksheet '{MASTER_SHEET}' not found in file '{filepath}', returning empty results."
             )
-            return {}, {}
         raise
 
     split_idx = get_split_marker_row_index(df, marker=SPLIT_MARKER)
