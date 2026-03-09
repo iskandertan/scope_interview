@@ -7,11 +7,7 @@ startup before any table DDL so SQLAlchemy can resolve schema-qualified names.
 from sqlalchemy import Engine
 from sqlalchemy.schema import CreateSchema
 
-SCHEMAS: list[str] = [
-    "raw",
-    "warehouse",
-    "pipeline_state",
-]
+SCHEMAS: list[str] = ["raw", "warehouse", "file_uploads"]
 
 
 def create_schemas(engine: Engine) -> None:

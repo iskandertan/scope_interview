@@ -1,5 +1,6 @@
 import datetime
 from pathlib import Path
+from src.pipeline.source_dtypes import SrcFileMetadata
 
 
 def get_sha3_256(file_path: Path) -> str:
@@ -16,17 +17,18 @@ def get_sha3_256(file_path: Path) -> str:
     return hasher.hexdigest()
 
 
-def get_metadata(file_path: Path) -> dict:
-    """Extract filename and creation time metadata from the given file path."""
+def get_metadata(file_path: Path) -> SrcFileMetadata:
+    """Extract filename, UTC creation timestamp (naive), and SHA3-256 hash for the file."""
     if not isinstance(file_path, Path):
         raise ValueError(f"Expected a Path object, got {type(file_path)}")
 
-    stat = file_path.stat()
-    metadata = {
-        "fname": file_path.name,
-        "file_ctime": datetime.datetime.fromtimestamp(
-            stat.st_ctime, tz=datetime.timezone.utc
-        ),
-        "hash": get_sha3_256(file_path),
-    }
-    return metadata
+    ctime_utc_naive = datetime.datetime.fromtimestamp(
+        file_path.stat().st_ctime, tz=datetime.timezone.utc
+    ).replace(tzinfo=None)
+
+    # TODO: tests for return types
+    return SrcFileMetadata(
+        fname=file_path.name,
+        ctime=ctime_utc_naive,
+        sha3_256=get_sha3_256(file_path),
+    )

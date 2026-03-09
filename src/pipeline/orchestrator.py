@@ -1,87 +1,56 @@
-"""Pipeline orchestrator - scans data_path and ingests new .xlsm files."""
-
 import logging
+from pathlib import Path
 
 from src.config import settings
-
-# from src.db.models.pipeline_state import ProcessedFile
 from src.db.session import SessionLocal
 from src.pipeline.process_sheet import extract_sheet_data
 from src.pipeline.extract_file_metadata import get_metadata
-from src.pipeline.load_raw import load_raw_schema
 
+from src.db.models.tables import RawExcel, FileMetadata
+
+from src.pipeline.source_dtypes import SrcFileMetadata
 
 logger = logging.getLogger(__name__)
 
 
 async def run_pipeline() -> None:
     data_dir = settings.data_path
-    # logger.info("Running pipeline.")
     if not data_dir.exists():
         logger.warning("Data directory %s does not exist - skipping run", data_dir)
         return
-    for f in data_dir.glob("*.xls*"):
-        # Open transaction here
-        metadata = get_metadata(f)
-        # logger.info(f"{metadata}")
+
+    for f in data_dir.glob("*.xls*"):  # TODO: any excel file?
+        metadata: SrcFileMetadata = get_metadata(f)  # TODO: value of the metadata cls?
         kv_dict, ts_dict = extract_sheet_data(data_dir / f)
-        logger.info(f"{kv_dict}\n{ts_dict}")
-        # logger.info(f"{kv_df.shape} {ts_df.shape}")
-        # store in raw layer
-        # record that this file has been processed
-        # commit transaction
+        logger.debug(
+            f"\nMetadata:\n{metadata}\nKV_DICT:\n{kv_dict}\nTS_DICT:\n{ts_dict}\n"
+        )
+
+        populate_raw_layer(metadata, kv_dict, ts_dict, f)
+
     return None
 
 
-# async def run_pipeline() -> None:
-#     """Scan settings.data_path for .xlsm files and ingest any not yet seen.
+def populate_raw_layer(
+    metadata: SrcFileMetadata, kv_dict: dict, ts_dict: dict, fpath: Path
+):
+    """Opens a transaction to populate class FileMetadata and class RawExcel tables.
+    Rollback on any exception."""
+    # TODO: dealing with and detecting rollbacks.
+    with SessionLocal.begin() as session:  # TODO: this rollbacks on Exceptions?
+        # FileMetadata record
+        if metadata.existing(session):
+            logger.debug(f"Skipping {fpath.name} - already ingested")
+            # TODO: record this for compliance (/uploads) and drop the file
+            return
+        record: FileMetadata = metadata.to_orm()
+        session.add(record)
+        session.flush()  # to get record.id for the foreign key in RawExcel
+        logger.debug(f"Saved metadata for {fpath.name} (id={record.id})")
 
-#     Deduplication is by SHA3-256 content hash — a renamed/moved file that was
-#     already ingested is skipped.
-#     """
-#     data_dir = settings.data_path
-#     if not data_dir.exists():
-#         logger.warning("Data directory %s does not exist - skipping run", data_dir)
-#         return
-
-#     xlsm_files = sorted(data_dir.glob("*.xlsm"))
-#     if not xlsm_files:
-#         logger.debug("No .xlsm files found in %s", data_dir)
-#         return
-
-#     with SessionLocal() as session:
-#         for file_path in xlsm_files:
-#             try:
-#                 file_hash = compute_file_hash(str(file_path))
-
-#                 if session.query(ProcessedFile).filter_by(file_hash=file_hash).first():
-#                     logger.debug("Skipping %s - already processed", file_path.name)
-#                     continue
-
-#                 logger.info("Processing %s", file_path.name)
-#                 stat = file_path.stat()
-#                 data = extract_excel(str(file_path))
-#                 load_raw_schema(
-#                     session, file_hash=file_hash, fname=file_path.name, data=data
-#                 )
-
-#                 session.add(
-#                     ProcessedFile(
-#                         fname=file_path.name,
-#                         fpath=str(file_path.resolve()),
-#                         file_hash=file_hash,
-#                         file_size_bytes=stat.st_size,
-#                         file_mtime=datetime.fromtimestamp(
-#                             stat.st_mtime, tz=timezone.utc
-#                         ),
-#                         file_ctime=datetime.fromtimestamp(
-#                             stat.st_ctime, tz=timezone.utc
-#                         ),
-#                     )
-#                 )
-#                 session.commit()
-#                 logger.info("Finished %s", file_path.name)
-
-#             except Exception:
-#                 session.rollback()
-#                 logger.exception("Failed to process %s", file_path.name)
+        # RawExcel record
+        raw_excel_record = RawExcel(
+            file_id=record.id, key_values=kv_dict, timeseries=ts_dict
+        )
+        session.add(raw_excel_record)
+        logger.debug(f"Saved raw data for {fpath.name} (id={record.id})")
