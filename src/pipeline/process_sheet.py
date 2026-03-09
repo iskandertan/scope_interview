@@ -10,55 +10,61 @@ from src.config import settings
 
 logger = logging.getLogger(__name__)
 
-SCOPE_MARKER = "[Scope Credit Metrics]"
+SPLIT_MARKER = "[Scope Credit Metrics]"
 MASTER_SHEET = "MASTER"
 
 
-def extract_sheet_data(filepath: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Read the MASTER worksheet and split it into key-value and timeseries sections.
+def extract_sheet_data(
+    filepath: Path,
+) -> tuple[dict[str, list[str]], dict[str, dict]]:
+    """Split the MASTER sheet into key-value and timeseries sections at `SPLIT_MARKER`.
 
-    The sheet is cleaned by removing fully empty rows/columns, then split at the
-    first row containing `SCOPE_MARKER` (match in any column):
+    Returns `(kv_dict, ts_dict)`:
+    - `kv_dict`: `{row_label: [values...]}` for rows above the marker.
+    - `ts_dict`: `{metric: {col_header: value, ...}}` for rows at/below the marker.
 
-    - `df_kv`: rows above the marker
-    - `df_ts`: marker row and all rows below it
-
-    If the last column of `df_ts` contains only non-null values equal to
-    `"Locked"` (case-insensitive, surrounding whitespace ignored), that column is
-    dropped.
-
-    The resulting DataFrames are also saved to `<data_path>/parsed` as:
-    `<stem>_kv.xlsx` and `<stem>_ts.xlsx` (only if the files do not already exist).
-
-    Args:
-        filepath: Path to the source Excel workbook.
-
-    Returns:
-        A tuple `(df_kv, df_ts)`.
-
-    Raises:
-        ValueError: If `filepath` is not a `Path`.
-        ValueError: If `SCOPE_MARKER` is not found in the MASTER sheet.
+    Raises `ValueError` if `filepath` is not a `Path` or the marker is not found.
     """
 
     if not isinstance(filepath, Path):
         raise ValueError(f"Expected a Path object, got {type(filepath)}")
 
-    df = pd.read_excel(filepath, sheet_name=MASTER_SHEET, dtype=object, header=None)
+    try:
+        df = pd.read_excel(filepath, sheet_name=MASTER_SHEET, dtype=object, header=None)
+    except ValueError as exc:
+        # TODO: handle this case
+        if "Worksheet named" in str(exc) and f"'{MASTER_SHEET}'" in str(exc):
+            logger.warning(
+                f"Worksheet '{MASTER_SHEET}' not found in file '{filepath}', returning empty results."
+            )
+            return {}, {}
+        raise
 
-    # Drop columns and rows where every value is None/NaN
-    df = df.dropna(axis=1, how="all").dropna(axis=0, how="all").reset_index(drop=True)
+    split_idx = get_split_marker_row_index(df, marker=SPLIT_MARKER)
+    df_kv, df_ts = split_dfs(df, split_idx)
+    save_dfs(df_kv, df_ts, filepath)
 
-    mask = df.eq(SCOPE_MARKER).any(axis=1)  # type: ignore[arg-type]
-    matches = df.index[mask].tolist()
+    # Get kv_dict
+    kv_dict: dict[str, list[str]] = {}
+    for _, row in df_kv.iterrows():
+        kv_dict[str(row.iloc[0])] = [str(v) for v in row.iloc[1:] if pd.notna(v)]
 
-    if not matches:
-        raise ValueError(f"Marker '{SCOPE_MARKER}' not found in {filepath.name}")
+    # Get ts_dict
+    ts_dict = df_ts.set_index(df_ts.columns[0]).to_dict("index")
 
-    split_idx = int(matches[0])
+    return kv_dict, ts_dict
+
+
+def split_dfs(df, split_idx):
 
     df_kv = df.iloc[:split_idx].reset_index(drop=True)
+    df_kv = (
+        df_kv.dropna(axis=1, how="all").dropna(axis=0, how="all").reset_index(drop=True)
+    )
+
     df_ts = df.iloc[split_idx:].reset_index(drop=True)
+    df_ts.columns = df_ts.iloc[0]
+    df_ts = df_ts.iloc[1:].reset_index(drop=True)
 
     # If the last timeseries column is entirely "Locked", drop it.
     if not df_ts.empty and len(df_ts.columns) > 0:
@@ -70,9 +76,25 @@ def extract_sheet_data(filepath: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
             )
             if all_locked:
                 df_ts = df_ts.iloc[:, :-1]
+    df_ts = (
+        df_ts.dropna(axis=1, how="all").dropna(axis=0, how="all").reset_index(drop=True)
+    )
 
-    # Persist to data/parsed
-    parsed_dir = settings.data_path / "parsed"
+    return df_kv, df_ts
+
+
+def get_split_marker_row_index(df: pd.DataFrame, marker=SPLIT_MARKER) -> int:
+    """Return the index of the first row containing SPLIT_MARKER in any column."""
+    mask = df.eq(marker).any(axis=1)  # type: ignore[arg-type]
+    matches = df.index[mask].tolist()
+    if not matches:
+        raise ValueError(f"Marker '{marker}' not found in DataFrame")
+    return int(matches[0])
+
+
+def save_dfs(df_kv: pd.DataFrame, df_ts: pd.DataFrame, filepath: Path) -> None:
+    """Save the given DataFrames to Excel files in the parsed directory."""
+    parsed_dir = settings.data_path / "debug"
     parsed_dir.mkdir(parents=True, exist_ok=True)
 
     stem = filepath.stem
@@ -86,5 +108,3 @@ def extract_sheet_data(filepath: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     if not ts_path.exists():
         df_ts.to_excel(ts_path, index=False, header=False)
         logger.info(f"Saved {ts_path}")
-
-    return df_kv, df_ts

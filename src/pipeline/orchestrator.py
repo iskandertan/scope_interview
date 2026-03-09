@@ -1,11 +1,10 @@
 """Pipeline orchestrator - scans data_path and ingests new .xlsm files."""
 
 import logging
-from datetime import datetime, timezone
 
-from src.common.hashing import compute_file_hash
 from src.config import settings
-from src.db.models.pipeline_state import ProcessedFile
+
+# from src.db.models.pipeline_state import ProcessedFile
 from src.db.session import SessionLocal
 from src.pipeline.process_sheet import extract_sheet_data
 from src.pipeline.extract_file_metadata import get_metadata
@@ -25,7 +24,8 @@ async def run_pipeline() -> None:
         # Open transaction here
         metadata = get_metadata(f)
         # logger.info(f"{metadata}")
-        kv_df, ts_df = extract_sheet_data(data_dir / f)
+        kv_dict, ts_dict = extract_sheet_data(data_dir / f)
+        logger.info(f"{kv_dict}\n{ts_dict}")
         # logger.info(f"{kv_df.shape} {ts_df.shape}")
         # store in raw layer
         # record that this file has been processed
