@@ -193,6 +193,13 @@ Make sure that the below requirements are followed.
 
 ```
 
+```
+Across the entire python codebase of this repository, identify the most important pieces of functionality and implement unit and integration tests for those pieces. Use the tests folder. Use pytest for all tests. Make all tests succinct.
+
+reduce all tests in the test dir to absolute essentials. Optimize all tests for readability. Make sure that it's clear for the business stakeholders what is being tested.
+
+I persoanlly use tests to see how the application is supposed to funcition. For me, it's the way to easily and quickly see the inteded functionality of the app. Do the tests in the current app follow the same approach? If not, make the changes
+```
 
 **Format:** PDF, Markdown, screenshots, or text files
 **Location:** [Provide links or attach files here]

@@ -46,6 +46,7 @@
 * Data flow documentation.
 * Pydantic validation 'layer' makes the code more extendable and easier to maintain. 
 * many optional types throughout the codebase that need to be handled
+* Extra excel files for testing
 
 
 ---
@@ -222,6 +223,29 @@ Log level is set by the LOG_LEVEL env var. #TODO: address log level in config.py
 - **SQLAlchemy 2** — ORM + schema management
 - **openpyxl** — `.xlsm`/`.xlsx` parsing
 - **uv** — Python packaging and version management
+- **pytest** — unit and integration testing
+
+---
+
+## Tests
+
+Tests live in `tests/` and use pytest with an in-memory SQLite database (no PostgreSQL required).
+
+```bash
+uv run pytest tests/ -v
+```
+
+### Structure
+
+| File | Scope | What it covers |
+|---|---|---|
+| `conftest.py` | Shared fixtures | In-memory DB engine, session, sample data factories, FastAPI test client |
+| `test_transform.py` | Unit | Pydantic validators (`ValidatedAssessment`, `ValidatedTimeseries`, `IndustryRisk`), `validate_raw_data()`, rating validation, liquidity format |
+| `test_extract_file_metadata.py` | Unit | SHA3-256 hashing, `get_metadata()` return types |
+| `test_process_sheet.py` | Unit | `split_dfs()`, `get_split_marker_row_index()`, `handle_industry_risk_nesting()` |
+| `test_src_dtypes.py` | Unit | `SrcFileMetadata.to_orm()`, `SrcRawExcel.to_orm()`, frozen dataclass enforcement |
+| `test_api.py` | Integration | All REST endpoints (`/companies`, `/snapshots`, `/uploads`) — CRUD, filtering, 404s, point-in-time compare |
+| `test_transformer_integration.py` | Integration | `RawToWarehouseTransformer` — full transform, SCD Type 2 entity upserts, version incrementing, validation failures |
 
 ---
 
