@@ -3,7 +3,7 @@
 Following a star schema naming notation.
 
 Tables:
-    dim_entity        SCD Type 2 company dimension
+    dim_entity        company dimension with metadata change history
     fact_snapshot     One row per rating assessment (per file upload)
     fact_timeseries   One row per metric x year x snapshot
 """
@@ -43,7 +43,7 @@ class DimEntity(Base):
     currency: Mapped[Optional[str]] = mapped_column(VARCHAR(10))
     accounting_principles: Mapped[Optional[str]] = mapped_column(VARCHAR)
     fiscal_year_end_month: Mapped[Optional[str]] = mapped_column(VARCHAR)
-    # SCD2 tracking
+    # metadata validity window
     valid_from: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False)
     # valid_to is recorded when a file with new metadata for the same company is ingested
     valid_to: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP) 

@@ -161,6 +161,39 @@ class RawExcel(Base):
 create data models based on the readme requirements. I need everything in 2 data layers. rename bronze to raw. final layer is in warehouse_layer.py in warehouse schema. follow the star schema naming notation for table names. Create a class RawToWarehouseTransformer which handles data transition from raw to warehouse schemas using pydantic data validation to check the quality of input raw data and the quality checks inside the pydantic models. follow the financial concepts where it makes sense. for example aaa, aa, bb etc types for assessments
 ```
 
+```
+Implement the api endpoints following the requiremetns.Use pydantic for validation 
+API Development with FastAPI
+Challenges:
+Design RESTful endpoints for complex analytical queries
+Support point-in-time queries (requirement #2)
+Support time-series queries (requirement #6)
+Handle version navigation (requirement #4)
+Implement BI-friendly data access (requirement #8)
+Requirements:
+
+Company Endpoints:
+
+GET /companies - List all companies with current metadata
+GET /companies/{company_id} - Get company details (latest version)
+GET /companies/{company_id}/versions - Get all versions for a company (requirement #4)
+GET /companies/{company_id}/history - Get time-series data for analysis (requirement #3)
+GET /companies/compare - Compare multiple companies at specific point in time (requirement #2)
+Query params: company_ids, as_of_date
+Snapshot Endpoints:
+
+GET /snapshots - List all company snapshots with filters
+Query params: company_id, from_date, to_date, sector, country, currency
+
+Make sure that the below requirements are followed.
+- **Technical:**
+  - Pydantic models for request/response validation
+  - OpenAPI/Swagger documentation
+  - Proper HTTP status codes and error messages
+
+```
+
+
 **Format:** PDF, Markdown, screenshots, or text files
 **Location:** [Provide links or attach files here]
 

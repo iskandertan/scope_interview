@@ -41,8 +41,11 @@
 * Industry risks/methodoligies storage dtypes not ideal. Make a dimension?
 * Which fields are required? Pydantic + src models.
 * Each excel sheet can be logically divided into 2 parts: assessments and timeseries.
-
-
+* Overall data validation. e.g company names with missing spaces count as 2 distinct companies.
+* Many type Optional present. Verify and handle.
+* Data flow documentation.
+* Pydantic validation 'layer' makes the code more extendable and easier to maintain. 
+* many optional types throughout the codebase that need to be handled
 
 
 ---
@@ -63,34 +66,54 @@ API at `http://localhost:8000`. Swagger docs at `http://localhost:8000/docs`.
 
 ## API Endpoints
 
-### Companies
+All endpoints return Pydantic-validated JSON. Response schemas are defined in `src/api/schemas.py`.
+
+### Companies (`src/api/routes/companies.py`)
 | Method | Path | Description |
 |---|---|---|
-| GET | `/companies` | List all companies (latest metadata) |
-| GET | `/companies/{id}` | Company details (latest version) |
-| GET | `/companies/{id}/versions` | All versions for a company |
-| GET | `/companies/{id}/history` | Time-series data |
-| GET | `/companies/compare?company_ids=&as_of_date=` | Point-in-time comparison |
+| GET | `/companies` | List all companies with current metadata |
+| GET | `/companies/{id}` | Company details (current record) |
+| GET | `/companies/{id}/versions` | All snapshot versions for a company, ordered chronologically |
+| GET | `/companies/{id}/history` | Time-series data grouped by snapshot version |
+| GET | `/companies/compare?company_ids=1,2&as_of_date=YYYY-MM-DD` | Point-in-time comparison of multiple companies |
 
-### Snapshots
+```bash
+# Examples
+curl localhost:8000/companies
+curl localhost:8000/companies/1
+curl localhost:8000/companies/1/versions
+curl localhost:8000/companies/1/history
+curl "localhost:8000/companies/compare?company_ids=1,2&as_of_date=2025-06-01"
+```
+
+### Snapshots (`src/api/routes/snapshots.py`)
 | Method | Path | Description |
 |---|---|---|
 | GET | `/snapshots` | List snapshots — filterable by `company_id`, `from_date`, `to_date`, `sector`, `country`, `currency` |
-| GET | `/snapshots/latest` | Latest snapshot per company |
-| GET | `/snapshots/{id}` | Specific snapshot |
+| GET | `/snapshots/latest` | Latest snapshot per company (highest version_number) |
+| GET | `/snapshots/{id}` | Full snapshot details by ID |
 
-### Uploads
+```bash
+# Examples
+curl "localhost:8000/snapshots?sector=Corporates&country=Germany"
+curl localhost:8000/snapshots/latest
+curl localhost:8000/snapshots/3
+```
+
+### Uploads (`src/api/routes/uploads.py`)
 | Method | Path | Description |
 |---|---|---|
-| GET | `/uploads` | All ingested files with metadata |
-| GET | `/uploads/stats` | Upload count |
-| GET | `/uploads/{id}` | Specific upload details |
+| GET | `/uploads` | All ingested files with metadata, most recent first |
+| GET | `/uploads/stats` | Upload count, earliest and latest upload timestamps |
+| GET | `/uploads/{id}` | File metadata for a specific upload |
+| GET | `/uploads/{id}/details` | Upload with linked snapshot info (data lineage: file → company → version) |
 
-### Pipeline
-| Method | Path | Description |
-|---|---|---|
-| POST | `/pipeline/trigger` | Trigger a pipeline run (async, returns 202) |
-| GET | `/pipeline/status` | Processed file count |
+```bash
+# Examples
+curl localhost:8000/uploads
+curl localhost:8000/uploads/stats
+curl localhost:8000/uploads/1/details
+```
 
 ---
 
@@ -100,7 +123,7 @@ API at `http://localhost:8000`. Swagger docs at `http://localhost:8000/docs`.
 |---|---|---|
 | `file_uploads` | `file_metadata` | One row per ingested file (name, ctime, SHA3-256 hash) |
 | `raw` | `sheet` | One row per file — raw JSON blobs (`key_values`, `timeseries`) |
-| `warehouse` | `dim_entity` | SCD Type 2 company dimension (sector, country, currency, etc.) |
+| `warehouse` | `dim_entity` | Company dimension with metadata change history (sector, country, currency, etc.) |
 | `warehouse` | `fact_snapshot` | One row per rating assessment — all rating profiles, methodologies (JSON), industry risks (JSON), version number |
 | `warehouse` | `fact_timeseries` | One row per metric x year x snapshot — financial time-series data |
 
@@ -112,17 +135,17 @@ All models share a single `Base` (`src/db/models/base.py`). Schemas and tables a
 Excel file  ->  file_uploads.file_metadata + raw.sheet  (bronze)
                          |
                  RawToWarehouseTransformer
-                 (validates via CorporateRatingAssessment + FinancialMetricPoint)
+                 (validates via ValidatedAssessment + ValidatedTimeseries)
                          |
-                warehouse.dim_entity            (rated company — SCD2)
+                warehouse.dim_entity            (rated company — metadata versioned)
                 warehouse.fact_snapshot          (versioned rating assessment)
                 warehouse.fact_timeseries        (one row per metric × year)
 ```
 
 ### Validation (Pydantic)
 
-`CorporateRatingAssessment` parses and validates the key-value section of each Excel sheet.
-`FinancialMetricPoint` parses the timeseries section into flat metric × year rows.
+`ValidatedAssessment` (`src/pipeline/transform.py`) parses and validates the key-value section of each Excel sheet.
+`ValidatedTimeseries` parses the timeseries section into flat metric × year rows.
 
 Rules enforced:
 - Required fields: `entity_name` must be non-empty

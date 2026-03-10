@@ -102,8 +102,8 @@ def validate_raw_data(kv: dict) -> None:
         )
 
 
-# DimEntity columns tracked for SCD2 change detection.
-_SCD2_FIELDS = (
+# dim_entity metadata fields that trigger a new history record when changed.
+_TRACKED_FIELDS = (
     "corporate_sector",
     "country",
     "currency",
@@ -395,11 +395,10 @@ class RawToWarehouseTransformer:
         return TransformResult(file_id=raw.file_id, success=True)
 
     def _upsert_entity(self, assessment: ValidatedAssessment, ctime: datetime) -> int:
-        """Insert or update a company in dim_entity, preserving history (SCD2).
+        """Insert or update a company in dim_entity, preserving metadata history.
 
-        dim_entity keeps a versioned history of company metadata. Only one row
-        per company has is_current=True. When tracked attributes change, the
-        old row is closed (valid_to set) and a new row is inserted.
+        When tracked metadata changes, the previous record is closed
+        (valid_to set, is_current=False) and a new one becomes active.
 
         Returns the entity_key for the active row.
         """
@@ -423,7 +422,7 @@ class RawToWarehouseTransformer:
             entity_name=assessment.entity_name,
             valid_from=ctime,
             is_current=True,
-            **{f: getattr(assessment, f) for f in _SCD2_FIELDS},
+            **{f: getattr(assessment, f) for f in _TRACKED_FIELDS},
         )
         self.session.add(entity)
         self.session.flush()
@@ -436,7 +435,7 @@ class RawToWarehouseTransformer:
         """True if any company metadata (sector, country, currency,
         accounting principles, fiscal year-end) differs between the DB row
         and the incoming assessment."""
-        return any(getattr(current, f) != getattr(assessment, f) for f in _SCD2_FIELDS)
+        return any(getattr(current, f) != getattr(assessment, f) for f in _TRACKED_FIELDS)
 
     def _next_version(self, entity_key: int) -> int:
         """Return the next snapshot version number for a company.
