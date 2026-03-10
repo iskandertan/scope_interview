@@ -124,7 +124,7 @@ class IndustryRiskEntry(BaseModel):
 
     @field_validator("risk_score")
     @classmethod
-    def validate_risk_score(cls, v: str) -> str:
+    def validate_risk_score(cls, v: str) -> str | None:
         return _check_rating(v)
 
     @field_validator("weight")

@@ -8,7 +8,7 @@ from src.pipeline.extract_file_metadata import get_metadata
 
 from src.db.models.raw_layer import RawSheetTbl, FileMetadataTbl
 
-from src.pipeline.raw_ingest import SrcFileMetadata, SrcRawExcel
+from src.pipeline.src_dtypes import SrcFileMetadata, SrcRawExcel
 from src.pipeline.transform import RawToWarehouseTransformer
 
 logger = logging.getLogger(__name__)
