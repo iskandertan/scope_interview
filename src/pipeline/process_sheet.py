@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 
 from src.config import settings
-from src.pipeline.data_layers import SrcRawExcel
+from src.pipeline.raw_ingest import SrcRawExcel
 
 
 logger = logging.getLogger(__name__)

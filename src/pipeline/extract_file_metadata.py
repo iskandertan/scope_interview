@@ -1,6 +1,6 @@
 import datetime
 from pathlib import Path
-from src.pipeline.data_layers import SrcFileMetadata
+from src.pipeline.raw_ingest import SrcFileMetadata
 
 
 def get_sha3_256(file_path: Path) -> str:

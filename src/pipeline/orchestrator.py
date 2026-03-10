@@ -6,9 +6,10 @@ from src.db.session import SessionLocal
 from src.pipeline.process_sheet import extract_sheet_data
 from src.pipeline.extract_file_metadata import get_metadata
 
-from src.db.models.bronze_layer import RawExcel, FileMetadata
+from src.db.models.raw_layer import RawSheetTbl, FileMetadataTbl
 
-from src.pipeline.data_layers import SrcFileMetadata, SrcRawExcel
+from src.pipeline.raw_ingest import SrcFileMetadata, SrcRawExcel
+from src.pipeline.transform import RawToWarehouseTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -29,26 +30,30 @@ async def run_pipeline() -> None:
         )
         populate_raw_layer(metadata, raw_excel, f)
 
-    # Raw -> Silver
-    with SessionLocal.begin() as session:
-        # TODO: rows as a generator
-        raw_excels = (
-            session.query(RawExcel)
-            .join(FileMetadata, RawExcel.file_id == FileMetadata.id)
-            .filter(RawExcel.was_processed.is_(False))
-            .order_by(FileMetadata.ctime.asc())
-            .all()
-        )
-    for r in raw_excels:
-        logger.debug(f"{type(r)}")
-        # populate_silver_layer()
-
+    # Raw -> Warehouse
+    populate_warehouse_layer()
     return None
 
 
-def populate_silver_layer():
+def populate_warehouse_layer():
     with SessionLocal.begin() as session:
-        pass
+        unprocessed = (
+            session.query(RawSheetTbl, FileMetadataTbl)
+            .join(FileMetadataTbl, RawSheetTbl.file_id == FileMetadataTbl.id)
+            .filter(RawSheetTbl.was_processed.is_(False))
+            .order_by(FileMetadataTbl.ctime.asc())
+            .all()
+        )
+        if not unprocessed:
+            return
+
+        transformer = RawToWarehouseTransformer(session)
+        for raw, file_meta in unprocessed:
+            result = transformer.transform(raw, file_meta)
+            if not result.success:
+                logger.error(
+                    f"Transform failed for file_id={result.file_id}: {result.errors}"
+                )
 
 
 def populate_raw_layer(metadata: SrcFileMetadata, raw_excel: SrcRawExcel, fpath: Path):
@@ -61,7 +66,7 @@ def populate_raw_layer(metadata: SrcFileMetadata, raw_excel: SrcRawExcel, fpath:
             logger.debug(f"Skipping {fpath.name} - already ingested")
             # TODO: record this for compliance (/uploads) and drop the file
             return
-        record: FileMetadata = metadata.to_orm()
+        record: FileMetadataTbl = metadata.to_orm()
         session.add(record)
         session.flush()  # to get record.id for the foreign key in RawExcel
         logger.debug(f"Saved metadata for {fpath.name} (id={record.id})")

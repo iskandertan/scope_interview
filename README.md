@@ -38,7 +38,8 @@
 * ABCs for `source_dtypes.py`? 
 * src classes for readability
 * Data layer definitions + transforms
-
+* Document Transformers
+* Industry risks/methodoligies storage dtypes not ideal. Make a dimension?
 
 ---
 
@@ -93,15 +94,34 @@ API at `http://localhost:8000`. Swagger docs at `http://localhost:8000/docs`.
 
 | Schema | Table | Description |
 |---|---|---|
-| `raw` | `file_uploads` | One row per ingested file |
-| `raw` | `sheet_rows` | One row per spreadsheet row (JSONB `data` column) |
-| `pipeline_state` | `processed_files` | Deduplication log — keyed by SHA3-256 content hash |
+| `file_uploads` | `file_metadata` | One row per ingested file (name, ctime, SHA3-256 hash) |
+| `raw` | `sheet` | One row per file — raw JSON blobs (`key_values`, `timeseries`) |
+| `warehouse` | `dim_entity` | SCD Type 2 company dimension (sector, country, currency, etc.) |
+| `warehouse` | `fact_snapshot` | One row per rating assessment — all rating profiles, methodologies (JSON), industry risks (JSON), version number |
+| `warehouse` | `fact_timeseries` | One row per metric x year x snapshot — financial time-series data |
 
-Schemas and tables are created at app startup via `init_db(engine)` (`src/db/init_db.py`):
-- `src/db/schemas.py` — declares all PostgreSQL schemas (`raw`, `warehouse`, `pipeline_state`) and creates them with SQLAlchemy `CreateSchema` DDL.
-- `src/db/tables.py` — imports all ORM models and calls `Base.metadata.create_all`. Add new models here to have them created at startup.
+All models share a single `Base` (`src/db/models/base.py`). Schemas and tables are created at app startup via `init_db(engine)` (`src/db/init_db.py`).
 
-Schemas must exist before tables, so `init_db` always runs `create_schemas` first.
+### Data flow
+
+```
+Excel file  ->  file_uploads.file_metadata + raw.sheet  (bronze)
+                         |
+                 RawToWarehouseTransformer
+                 (Pydantic validation)
+                         |
+                warehouse.dim_entity            (SCD2 dimension)
+                warehouse.fact_snapshot          (rating assessment)
+                warehouse.fact_timeseries        (metric x year rows)
+```
+
+### Validation (Pydantic)
+
+- Required fields: `entity_name` must be non-empty
+- Rating scores validated against standard scale (AAA through D)
+- Industry risk weights must be in [0, 1] and sum to 1.0
+- Liquidity adjustment must match `[+-]N notch(es)` format
+- Timeseries: "No data" values stored as NULL
 
 ---
 

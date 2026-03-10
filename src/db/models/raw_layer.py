@@ -8,16 +8,10 @@ from sqlalchemy.dialects.postgresql import (
     JSON,
     BOOLEAN,
 )
-from sqlalchemy import Engine, ForeignKey
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column
 
-# ---------------------------------------------------------------------------
-# Declarative base
-# ---------------------------------------------------------------------------
-
-
-class Base(DeclarativeBase):
-    pass
+from src.db.models.base import Base
 
 
 # ---------------------------------------------------------------------------
@@ -25,7 +19,7 @@ class Base(DeclarativeBase):
 # ---------------------------------------------------------------------------
 
 
-class FileMetadata(Base):
+class FileMetadataTbl(Base):
     __tablename__ = "file_metadata"
     __table_args__ = {"schema": "file_uploads"}
 
@@ -40,23 +34,13 @@ class FileMetadata(Base):
 # ---------------------------------------------------------------------------
 
 
-class RawExcel(Base):
+class RawSheetTbl(Base):
     __tablename__ = "sheet"
     __table_args__ = {"schema": "raw"}
 
     file_id: Mapped[int] = mapped_column(
         INTEGER, ForeignKey("file_uploads.file_metadata.id"), primary_key=True
     )
-    key_values = mapped_column(JSON, nullable=False)
+    assessment = mapped_column(JSON, nullable=False)
     timeseries = mapped_column(JSON, nullable=False)
     was_processed = mapped_column(BOOLEAN, nullable=False, default=False)
-
-
-# ---------------------------------------------------------------------------
-# Table creation
-# ---------------------------------------------------------------------------
-
-
-def create_bronze_layer(engine: Engine) -> None:
-    """Create all ORM-mapped tables if they do not already exist."""
-    Base.metadata.create_all(bind=engine)
