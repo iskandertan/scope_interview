@@ -157,6 +157,10 @@ class RawExcel(Base):
     was_processed = mapped_column(BOOLEAN, nullable=False, default=False)
 ```
 
+```
+create data models based on the readme requirements. I need everything in 2 data layers. rename bronze to raw. final layer is in warehouse_layer.py in warehouse schema. follow the star schema naming notation for table names. Create a class RawToWarehouseTransformer which handles data transition from raw to warehouse schemas using pydantic data validation to check the quality of input raw data and the quality checks inside the pydantic models. follow the financial concepts where it makes sense. for example aaa, aa, bb etc types for assessments
+```
+
 **Format:** PDF, Markdown, screenshots, or text files
 **Location:** [Provide links or attach files here]
 
