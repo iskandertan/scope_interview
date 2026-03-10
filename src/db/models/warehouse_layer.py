@@ -1,5 +1,7 @@
 """Warehouse layer (gold) — dimensional model for credit rating analytics.
 
+Following a star schema naming notation.
+
 Tables:
     dim_entity        SCD Type 2 company dimension
     fact_snapshot     One row per rating assessment (per file upload)
@@ -24,12 +26,12 @@ from src.db.models.base import Base
 
 
 # ---------------------------------------------------------------------------
-# Dimensions
+# Dimension Tables
 # ---------------------------------------------------------------------------
 
 
 class DimEntity(Base):
-    """SCD Type 2 — tracks changes to company metadata over time."""
+    """Tracks changes to company metadata over time."""
 
     __tablename__ = "dim_entity"
     __table_args__ = {"schema": "warehouse"}
@@ -43,17 +45,22 @@ class DimEntity(Base):
     fiscal_year_end_month: Mapped[Optional[str]] = mapped_column(VARCHAR)
     # SCD2 tracking
     valid_from: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False)
-    valid_to: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP)
+    # valid_to is recorded when a file with new metadata for the same company is ingested
+    valid_to: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP) 
     is_current: Mapped[bool] = mapped_column(BOOLEAN, default=True)
 
 
 # ---------------------------------------------------------------------------
-# Facts
+# Facts Tables
 # ---------------------------------------------------------------------------
 
 
 class FactSnapshot(Base):
-    """One row per file upload — rating assessment with version tracking."""
+    """One row per file upload — a complete rating assessment for a company.
+
+    Each upload of an Excel file produces exactly one snapshot. Contains everything
+    from the assessment part of the excel sheet - class SrcRawExcel.assessment
+    """
 
     __tablename__ = "fact_snapshot"
     __table_args__ = (
@@ -73,7 +80,7 @@ class FactSnapshot(Base):
     )
     snapshot_date: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False)
     version_number: Mapped[int] = mapped_column(INTEGER, nullable=False)
-    # Rating profiles
+    # Business risk assessment
     business_risk_profile: Mapped[Optional[str]] = mapped_column(VARCHAR)
     blended_industry_risk_profile: Mapped[Optional[str]] = mapped_column(VARCHAR)
     competitive_positioning: Mapped[Optional[str]] = mapped_column(VARCHAR)
@@ -82,19 +89,20 @@ class FactSnapshot(Base):
     operating_profitability: Mapped[Optional[str]] = mapped_column(VARCHAR)
     sector_factor_1: Mapped[Optional[str]] = mapped_column(VARCHAR)
     sector_factor_2: Mapped[Optional[str]] = mapped_column(VARCHAR)
+    # Financial risk assessment
     financial_risk_profile: Mapped[Optional[str]] = mapped_column(VARCHAR)
     leverage: Mapped[Optional[str]] = mapped_column(VARCHAR)
     interest_cover: Mapped[Optional[str]] = mapped_column(VARCHAR)
     cash_flow_cover: Mapped[Optional[str]] = mapped_column(VARCHAR)
     liquidity_adjustment: Mapped[Optional[str]] = mapped_column(VARCHAR)
+    # Classification
     segmentation_criteria: Mapped[Optional[str]] = mapped_column(VARCHAR)
-    # Stored as JSON — no need for bridge tables at this data volume
     rating_methodologies_applied: Mapped[Optional[list]] = mapped_column(JSON)
     industry_risks: Mapped[Optional[list]] = mapped_column(JSON)
 
 
 class FactTimeseries(Base):
-    """One row per metric x year x snapshot."""
+    """One row per metric per year per snapshot."""
 
     __tablename__ = "fact_timeseries"
     __table_args__ = (

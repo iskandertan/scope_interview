@@ -412,7 +412,9 @@ class RawToWarehouseTransformer:
         return entity.entity_key
 
     @staticmethod
-    def _entity_metadata_differs(current: DimEntity, assessment: ValidatedAssessment) -> bool:
+    def _entity_metadata_differs(
+        current: DimEntity, assessment: ValidatedAssessment
+    ) -> bool:
         """True if any company metadata (sector, country, currency,
         accounting principles, fiscal year-end) differs between the DB row
         and the incoming assessment."""
