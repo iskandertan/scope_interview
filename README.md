@@ -38,8 +38,12 @@
 * ABCs for `source_dtypes.py`? 
 * src classes for readability
 * Data layer definitions + transforms
-* Document Transformers
 * Industry risks/methodoligies storage dtypes not ideal. Make a dimension?
+* Which fields are required? Pydantic + src models.
+* Each excel sheet can be logically divided into 2 parts: assessments and timeseries.
+
+
+
 
 ---
 
@@ -108,20 +112,24 @@ All models share a single `Base` (`src/db/models/base.py`). Schemas and tables a
 Excel file  ->  file_uploads.file_metadata + raw.sheet  (bronze)
                          |
                  RawToWarehouseTransformer
-                 (Pydantic validation)
+                 (validates via CorporateRatingAssessment + FinancialMetricPoint)
                          |
-                warehouse.dim_entity            (SCD2 dimension)
-                warehouse.fact_snapshot          (rating assessment)
-                warehouse.fact_timeseries        (metric x year rows)
+                warehouse.dim_entity            (rated company — SCD2)
+                warehouse.fact_snapshot          (versioned rating assessment)
+                warehouse.fact_timeseries        (one row per metric × year)
 ```
 
 ### Validation (Pydantic)
 
+`CorporateRatingAssessment` parses and validates the key-value section of each Excel sheet.
+`FinancialMetricPoint` parses the timeseries section into flat metric × year rows.
+
+Rules enforced:
 - Required fields: `entity_name` must be non-empty
 - Rating scores validated against standard scale (AAA through D)
-- Industry risk weights must be in [0, 1] and sum to 1.0
+- Industry risk weights must be in [0, 1] and sum to 1.0 across all industries
 - Liquidity adjustment must match `[+-]N notch(es)` format
-- Timeseries: "No data" values stored as NULL
+- Timeseries: "No data" values stored as NULL; year keys ending in `E` flagged as estimates
 
 ---
 

@@ -377,21 +377,30 @@ class RawToWarehouseTransformer:
         return TransformResult(file_id=raw.file_id, success=True)
 
     def _upsert_entity(self, assessment: ValidatedAssessment, ctime: datetime) -> int:
-        """SCD2 upsert: return entity_key, closing old row if metadata changed."""
+        """Insert or update a company in dim_entity, preserving history (SCD2).
+
+        dim_entity keeps a versioned history of company metadata. Only one row
+        per company has is_current=True. When tracked attributes change, the
+        old row is closed (valid_to set) and a new row is inserted.
+
+        Returns the entity_key for the active row.
+        """
         current = (
             self.session.query(DimEntity)
             .filter_by(entity_name=assessment.entity_name, is_current=True)
             .first()
         )
 
-        if current and not self._entity_changed(current, assessment):
+        # Nothing changed — reuse existing row
+        if current and not self._entity_metadata_differs(current, assessment):
             return current.entity_key
 
-        # Close previous version if it exists
+        # Close the previous row so we keep a historical record
         if current:
             current.valid_to = ctime
             current.is_current = False
 
+        # Insert a new row that becomes the single active version
         entity = DimEntity(
             entity_name=assessment.entity_name,
             valid_from=ctime,
@@ -403,7 +412,10 @@ class RawToWarehouseTransformer:
         return entity.entity_key
 
     @staticmethod
-    def _entity_changed(current: DimEntity, assessment: ValidatedAssessment) -> bool:
+    def _entity_metadata_differs(current: DimEntity, assessment: ValidatedAssessment) -> bool:
+        """True if any company metadata (sector, country, currency,
+        accounting principles, fiscal year-end) differs between the DB row
+        and the incoming assessment."""
         return any(getattr(current, f) != getattr(assessment, f) for f in _SCD2_FIELDS)
 
     def _next_version(self, entity_key: int) -> int:
