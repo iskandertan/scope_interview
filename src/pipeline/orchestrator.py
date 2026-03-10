@@ -6,7 +6,7 @@ from src.db.session import SessionLocal
 from src.pipeline.process_sheet import extract_sheet_data
 from src.pipeline.extract_file_metadata import get_metadata
 
-from src.db.models.tables import RawExcel, FileMetadata
+from src.db.models.bronze_layer import RawExcel, FileMetadata
 
 from src.pipeline.data_layers import SrcFileMetadata, SrcRawExcel
 
@@ -29,7 +29,26 @@ async def run_pipeline() -> None:
         )
         populate_raw_layer(metadata, raw_excel, f)
 
+    # Raw -> Silver
+    with SessionLocal.begin() as session:
+        # TODO: rows as a generator
+        raw_excels = (
+            session.query(RawExcel)
+            .join(FileMetadata, RawExcel.file_id == FileMetadata.id)
+            .filter(RawExcel.was_processed.is_(False))
+            .order_by(FileMetadata.ctime.asc())
+            .all()
+        )
+    for r in raw_excels:
+        logger.debug(f"{type(r)}")
+        # populate_silver_layer()
+
     return None
+
+
+def populate_silver_layer():
+    with SessionLocal.begin() as session:
+        pass
 
 
 def populate_raw_layer(metadata: SrcFileMetadata, raw_excel: SrcRawExcel, fpath: Path):

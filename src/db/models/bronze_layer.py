@@ -1,9 +1,3 @@
-"""ORM table definitions for all application schemas.
-
-All models are declared here and automatically registered with `Base.metadata`.
-`create_tables(engine)` creates every table if it does not already exist.
-"""
-
 from datetime import datetime
 
 from sqlalchemy.dialects.postgresql import (
@@ -63,6 +57,6 @@ class RawExcel(Base):
 # ---------------------------------------------------------------------------
 
 
-def create_tables(engine: Engine) -> None:
+def create_bronze_layer(engine: Engine) -> None:
     """Create all ORM-mapped tables if they do not already exist."""
     Base.metadata.create_all(bind=engine)

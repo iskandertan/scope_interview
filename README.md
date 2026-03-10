@@ -37,6 +37,7 @@
 * Pydantic instead of `@dataclass` on src cls
 * ABCs for `source_dtypes.py`? 
 * src classes for readability
+* Data layer definitions + transforms
 
 
 ---
