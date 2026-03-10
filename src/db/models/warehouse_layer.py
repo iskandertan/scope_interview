@@ -9,21 +9,19 @@ Tables:
 """
 
 from datetime import datetime
-from typing import Optional
 
+from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.dialects.postgresql import (
-    VARCHAR,
-    TIMESTAMP,
+    BOOLEAN,
     INTEGER,
     JSON,
-    BOOLEAN,
     NUMERIC,
+    TIMESTAMP,
+    VARCHAR,
 )
-from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.db.models.base import Base
-
 
 # ---------------------------------------------------------------------------
 # Dimension Tables
@@ -38,15 +36,15 @@ class DimEntity(Base):
 
     entity_key: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     entity_name: Mapped[str] = mapped_column(VARCHAR, nullable=False)
-    corporate_sector: Mapped[Optional[str]] = mapped_column(VARCHAR)
-    country: Mapped[Optional[str]] = mapped_column(VARCHAR)
-    currency: Mapped[Optional[str]] = mapped_column(VARCHAR(10))
-    accounting_principles: Mapped[Optional[str]] = mapped_column(VARCHAR)
-    fiscal_year_end_month: Mapped[Optional[str]] = mapped_column(VARCHAR)
+    corporate_sector: Mapped[str | None] = mapped_column(VARCHAR)
+    country: Mapped[str | None] = mapped_column(VARCHAR)
+    currency: Mapped[str | None] = mapped_column(VARCHAR(10))
+    accounting_principles: Mapped[str | None] = mapped_column(VARCHAR)
+    fiscal_year_end_month: Mapped[str | None] = mapped_column(VARCHAR)
     # metadata validity window
     valid_from: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False)
-    # valid_to is recorded when a file with new metadata for the same company is ingested
-    valid_to: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP) 
+    # valid_to: set when new metadata for the same company is ingested
+    valid_to: Mapped[datetime | None] = mapped_column(TIMESTAMP)
     is_current: Mapped[bool] = mapped_column(BOOLEAN, default=True)
 
 
@@ -81,24 +79,24 @@ class FactSnapshot(Base):
     snapshot_date: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False)
     version_number: Mapped[int] = mapped_column(INTEGER, nullable=False)
     # Business risk assessment
-    business_risk_profile: Mapped[Optional[str]] = mapped_column(VARCHAR)
-    blended_industry_risk_profile: Mapped[Optional[str]] = mapped_column(VARCHAR)
-    competitive_positioning: Mapped[Optional[str]] = mapped_column(VARCHAR)
-    market_share: Mapped[Optional[str]] = mapped_column(VARCHAR)
-    diversification: Mapped[Optional[str]] = mapped_column(VARCHAR)
-    operating_profitability: Mapped[Optional[str]] = mapped_column(VARCHAR)
-    sector_factor_1: Mapped[Optional[str]] = mapped_column(VARCHAR)
-    sector_factor_2: Mapped[Optional[str]] = mapped_column(VARCHAR)
+    business_risk_profile: Mapped[str | None] = mapped_column(VARCHAR)
+    blended_industry_risk_profile: Mapped[str | None] = mapped_column(VARCHAR)
+    competitive_positioning: Mapped[str | None] = mapped_column(VARCHAR)
+    market_share: Mapped[str | None] = mapped_column(VARCHAR)
+    diversification: Mapped[str | None] = mapped_column(VARCHAR)
+    operating_profitability: Mapped[str | None] = mapped_column(VARCHAR)
+    sector_factor_1: Mapped[str | None] = mapped_column(VARCHAR)
+    sector_factor_2: Mapped[str | None] = mapped_column(VARCHAR)
     # Financial risk assessment
-    financial_risk_profile: Mapped[Optional[str]] = mapped_column(VARCHAR)
-    leverage: Mapped[Optional[str]] = mapped_column(VARCHAR)
-    interest_cover: Mapped[Optional[str]] = mapped_column(VARCHAR)
-    cash_flow_cover: Mapped[Optional[str]] = mapped_column(VARCHAR)
-    liquidity_adjustment: Mapped[Optional[str]] = mapped_column(VARCHAR)
+    financial_risk_profile: Mapped[str | None] = mapped_column(VARCHAR)
+    leverage: Mapped[str | None] = mapped_column(VARCHAR)
+    interest_cover: Mapped[str | None] = mapped_column(VARCHAR)
+    cash_flow_cover: Mapped[str | None] = mapped_column(VARCHAR)
+    liquidity_adjustment: Mapped[str | None] = mapped_column(VARCHAR)
     # Classification
-    segmentation_criteria: Mapped[Optional[str]] = mapped_column(VARCHAR)
-    rating_methodologies_applied: Mapped[Optional[list]] = mapped_column(JSON)
-    industry_risks: Mapped[Optional[list]] = mapped_column(JSON)
+    segmentation_criteria: Mapped[str | None] = mapped_column(VARCHAR)
+    rating_methodologies_applied: Mapped[list | None] = mapped_column(JSON)
+    industry_risks: Mapped[list | None] = mapped_column(JSON)
 
 
 class FactTimeseries(Base):
@@ -122,4 +120,4 @@ class FactTimeseries(Base):
     metric_name: Mapped[str] = mapped_column(VARCHAR, nullable=False)
     year: Mapped[int] = mapped_column(INTEGER, nullable=False)
     is_estimate: Mapped[bool] = mapped_column(BOOLEAN, default=False)
-    value: Mapped[Optional[float]] = mapped_column(NUMERIC)
+    value: Mapped[float | None] = mapped_column(NUMERIC)

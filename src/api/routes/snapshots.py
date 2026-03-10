@@ -5,7 +5,6 @@ to query rating assessments across companies, dates, and classifications.
 """
 
 from datetime import datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
@@ -51,14 +50,14 @@ async def get_latest_snapshots(db: Session = Depends(get_db)):
 
 @router.get("/", response_model=list[SnapshotSummary])
 async def list_snapshots(
-    company_id: Optional[int] = Query(None, description="Filter by entity_key"),
-    from_date: Optional[str] = Query(
+    company_id: int | None = Query(None, description="Filter by entity_key"),
+    from_date: str | None = Query(
         None, description="Start date (YYYY-MM-DD inclusive)"
     ),
-    to_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD inclusive)"),
-    sector: Optional[str] = Query(None, description="Filter by corporate sector"),
-    country: Optional[str] = Query(None, description="Filter by country"),
-    currency: Optional[str] = Query(None, description="Filter by currency"),
+    to_date: str | None = Query(None, description="End date (YYYY-MM-DD inclusive)"),
+    sector: str | None = Query(None, description="Filter by corporate sector"),
+    country: str | None = Query(None, description="Filter by country"),
+    currency: str | None = Query(None, description="Filter by currency"),
     db: Session = Depends(get_db),
 ):
     """List snapshots with optional filters (all combinable).

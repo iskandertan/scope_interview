@@ -6,12 +6,16 @@ exists before SQLAlchemy attempts to create schema-qualified tables.
 
 from sqlalchemy import Engine
 
-from src.db.models.schemas import create_schemas
 from src.db.models.base import Base
 
 # Import model modules so their tables register with Base.metadata
 from src.db.models.raw_layer import FileMetadataTbl, RawSheetTbl  # noqa: F401
-from src.db.models.warehouse_layer import DimEntity, FactSnapshot, FactTimeseries  # noqa: F401
+from src.db.models.schemas import create_schemas
+from src.db.models.warehouse_layer import (  # noqa: F401
+    DimEntity,
+    FactSnapshot,
+    FactTimeseries,
+)
 
 
 def init_db(engine: Engine) -> None:

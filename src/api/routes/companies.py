@@ -1,7 +1,6 @@
 """Company endpoints."""
 
 from datetime import datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -40,7 +39,7 @@ async def compare_companies(
     company_ids: str = Query(
         ..., description="Comma-separated entity_key values, e.g. '1,2,3'"
     ),
-    as_of_date: Optional[str] = Query(
+    as_of_date: str | None = Query(
         None,
         description="ISO-8601 date (YYYY-MM-DD). Returns the latest snapshot "
         "for each company on or before this date. Omit for latest overall.",

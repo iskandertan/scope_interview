@@ -1,18 +1,17 @@
 from datetime import datetime
 
+from sqlalchemy import ForeignKey
 from sqlalchemy.dialects.postgresql import (
-    VARCHAR,
+    BOOLEAN,
     CHAR,
-    TIMESTAMP,
     INTEGER,
     JSON,
-    BOOLEAN,
+    TIMESTAMP,
+    VARCHAR,
 )
-from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.db.models.base import Base
-
 
 # ---------------------------------------------------------------------------
 # file_uploads schema

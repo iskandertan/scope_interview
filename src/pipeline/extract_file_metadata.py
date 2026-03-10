@@ -1,5 +1,6 @@
 import datetime
 from pathlib import Path
+
 from src.pipeline.src_dtypes import SrcFileMetadata
 
 
@@ -18,7 +19,7 @@ def get_sha3_256(file_path: Path) -> str:
 
 
 def get_metadata(file_path: Path) -> SrcFileMetadata:
-    """Extract filename, UTC creation timestamp (naive), and SHA3-256 hash for the file."""
+    """Extract filename, UTC creation timestamp, and SHA3-256 hash."""
     if not isinstance(file_path, Path):
         raise ValueError(f"Expected a Path object, got {type(file_path)}")
 

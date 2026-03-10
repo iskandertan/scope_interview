@@ -42,7 +42,8 @@ class TestFullTransformPipeline:
     """A single raw sheet is transformed into warehouse dimension and fact tables."""
 
     def test_creates_entity_snapshot_and_timeseries(self, db_session, sample_file_meta):
-        """A valid raw sheet produces a dim_entity, fact_snapshot, and timeseries rows."""
+        """A valid raw sheet produces a dim_entity, fact_snapshot,
+        and timeseries rows."""
         raw = RawSheetTbl(
             file_id=sample_file_meta.id,
             assessment=_raw_assessment(),
@@ -146,7 +147,8 @@ class TestSCDType2EntityVersioning:
         assert new.country == "France"
 
     def test_unchanged_metadata_reuses_entity(self, db_session):
-        """Identical metadata across files keeps one dim_entity; snapshots are versioned."""
+        """Identical metadata across files keeps one dim_entity;
+        snapshots are versioned."""
         meta1 = FileMetadataTbl(
             fname="f1.xlsm", ctime=datetime(2024, 1, 1), sha3_256="c" * 64
         )

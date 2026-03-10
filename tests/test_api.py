@@ -1,7 +1,6 @@
-"""API capabilities: browse rated companies, query rating snapshots, and track uploaded files."""
+"""API: browse companies, query snapshots, and track uploads."""
 
 from src.db.models.warehouse_layer import FactTimeseries
-
 
 # -- /companies ---------------------------------------------------------------
 
@@ -26,27 +25,36 @@ class TestCompaniesAPI:
     def test_unknown_company_id_returns_404(self, client):
         assert client.get("/companies/999").status_code == 404
 
-    def test_all_rating_versions_for_a_company_are_accessible(self, client, sample_snapshot):
+    def test_all_rating_versions_for_a_company_are_accessible(
+        self, client, sample_snapshot
+    ):
         data = client.get(f"/companies/{sample_snapshot.entity_key}/versions").json()
         assert len(data) == 1
         assert data[0]["version_number"] == 1
 
-    def test_financial_history_for_a_company_is_accessible(self, client, sample_snapshot, db_session):
-        db_session.add(FactTimeseries(
-            snapshot_id=sample_snapshot.snapshot_id,
-            entity_key=sample_snapshot.entity_key,
-            metric_name="Revenue",
-            year=2022,
-            value=100.0,
-        ))
+    def test_financial_history_for_a_company_is_accessible(
+        self, client, sample_snapshot, db_session
+    ):
+        db_session.add(
+            FactTimeseries(
+                snapshot_id=sample_snapshot.snapshot_id,
+                entity_key=sample_snapshot.entity_key,
+                metric_name="Revenue",
+                year=2022,
+                value=100.0,
+            )
+        )
         db_session.flush()
 
         data = client.get(f"/companies/{sample_snapshot.entity_key}/history").json()
         assert len(data) == 1
         assert data[0]["points"][0]["metric_name"] == "Revenue"
 
-    def test_multiple_companies_can_be_compared_side_by_side(self, client, sample_snapshot):
-        """The compare endpoint returns the latest snapshot for each requested company."""
+    def test_multiple_companies_can_be_compared_side_by_side(
+        self, client, sample_snapshot
+    ):
+        """The compare endpoint returns the latest snapshot
+        for each requested company."""
         data = client.get(
             "/companies/compare",
             params={"company_ids": str(sample_snapshot.entity_key)},
@@ -135,7 +143,8 @@ class TestUploadsAPI:
         assert client.get("/uploads/stats").json()["total_uploads"] == 1
 
     def test_processed_file_shows_assessment_and_version(self, client, sample_snapshot):
-        """After processing, the file record links to the company and the assigned version number."""
+        """After processing, the file record links to the
+        company and the assigned version number."""
         data = client.get(f"/uploads/{sample_snapshot.file_id}/details").json()
         assert data["entity_name"] == "Acme Corp"
         assert data["version_number"] == 1

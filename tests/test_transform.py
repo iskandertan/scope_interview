@@ -13,15 +13,16 @@ from src.pipeline.transform import (
     validate_raw_data,
 )
 
-
 # -- Industry risk ------------------------------------------------------------
 
 
 class TestIndustryRiskValidation:
-    """Each industry exposure entry must have a recognized rating and a weight between 0 and 1."""
+    """Each industry exposure entry must have a recognized
+    rating and a weight between 0 and 1."""
 
     def test_entry_is_normalized_on_creation(self):
-        """Leading/trailing whitespace in industry names and rating codes is stripped."""
+        """Leading/trailing whitespace in industry names
+        and rating codes is stripped."""
         ir = IndustryRisk(industry_name="  Steel  ", risk_score="  BBB ", weight=0.6)
         assert ir.industry_name == "Steel"
         assert ir.risk_score == "BBB"
@@ -40,7 +41,8 @@ class TestIndustryRiskValidation:
 
 
 def _minimal_raw_kv(**overrides) -> dict:
-    """Minimal raw key-value dict representing a valid credit assessment from the spreadsheet."""
+    """Minimal raw key-value dict representing a valid
+    credit assessment from the spreadsheet."""
     kv = {
         "Rated entity": ["Acme Corp"],
         "Business risk profile": ["BBB+"],
@@ -55,7 +57,8 @@ def _minimal_raw_kv(**overrides) -> dict:
 
 
 class TestAssessmentValidation:
-    """Credit assessment data from the Excel file must pass all business rules before storage."""
+    """Credit assessment data from the Excel file must
+    pass all business rules before storage."""
 
     def test_valid_assessment_is_accepted(self):
         a = ValidatedAssessment.from_raw(_minimal_raw_kv())
@@ -68,12 +71,14 @@ class TestAssessmentValidation:
             ValidatedAssessment.from_raw(_minimal_raw_kv(**{"Rated entity": [""]}))
 
     def test_unrecognized_excel_field_rejected(self):
-        """Fields that don't map to a known assessment attribute are rejected to prevent silent data loss."""
+        """Fields that don't map to a known assessment attribute
+        are rejected to prevent silent data loss."""
         with pytest.raises(ValueError, match="Unmapped field"):
             validate_raw_data({"Rated entity": ["x"], "Bogus Key": ["y"]})
 
     def test_company_name_field_must_be_a_single_value(self):
-        """Fields like company name that hold one value cannot appear multiple times in the sheet."""
+        """Fields like company name that hold one value
+        cannot appear multiple times in the sheet."""
         with pytest.raises(ValueError, match="Scalar field"):
             validate_raw_data({"Rated entity": ["Acme", "Other Corp"]})
 
@@ -85,7 +90,8 @@ class TestAssessmentValidation:
 
     @pytest.mark.parametrize("fmt", ["+1 notch", "-2 notches", "+0 notch"])
     def test_liquidity_adjustment_format(self, fmt):
-        """Liquidity adjustments are expressed as signed notch counts (e.g. '+1 notch')."""
+        """Liquidity adjustments are expressed as signed
+        notch counts (e.g. '+1 notch')."""
         a = ValidatedAssessment.from_raw(_minimal_raw_kv(**{"Liquidity": [fmt]}))
         assert a.liquidity_adjustment == fmt
 
@@ -94,7 +100,8 @@ class TestAssessmentValidation:
             ValidatedAssessment.from_raw(_minimal_raw_kv(**{"Liquidity": ["bad"]}))
 
     def test_industry_risk_weights_must_sum_to_one(self):
-        """When a company operates in multiple industries, the risk weights must sum to 100%."""
+        """When a company operates in multiple industries,
+        the risk weights must sum to 100%."""
         kv = _minimal_raw_kv()
         kv["Industry risk"] = [
             {"Steel": {"Industry risk score": "BBB", "Industry weight": "0.3"}},
@@ -104,7 +111,8 @@ class TestAssessmentValidation:
             ValidatedAssessment.from_raw(kv)
 
     def test_multi_sector_industry_risk_accepted(self):
-        """A company with exposure to multiple industries stores each sector individually."""
+        """A company with exposure to multiple industries
+        stores each sector individually."""
         kv = _minimal_raw_kv()
         kv["Industry risk"] = [
             {"Steel": {"Industry risk score": "BBB", "Industry weight": "0.6"}},
@@ -115,7 +123,8 @@ class TestAssessmentValidation:
         assert a.industry_risks[0].weight == 0.6
 
     def test_rating_methodology_names_are_trimmed(self):
-        """Methodology names from the spreadsheet are stored without leading/trailing whitespace."""
+        """Methodology names from the spreadsheet are stored
+        without leading/trailing whitespace."""
         kv = _minimal_raw_kv()
         kv["Rating methodologies applied"] = ["Method A", " Method B "]
         a = ValidatedAssessment.from_raw(kv)
@@ -129,8 +138,11 @@ class TestFinancialTimeseriesValidation:
     """Financial history (Revenue, EBITDA, etc.) is extracted as yearly data points."""
 
     def test_annual_metric_values_are_parsed(self):
-        """Each row in the financial history section becomes a (metric, year, value) record."""
-        points = ValidatedTimeseries.from_raw({"Revenue": {"2022": 100.0, "2023": 200.0}})
+        """Each row in the financial history section becomes
+        a (metric, year, value) record."""
+        points = ValidatedTimeseries.from_raw(
+            {"Revenue": {"2022": 100.0, "2023": 200.0}}
+        )
         assert len(points) == 2
         assert points[0].metric_name == "Revenue"
         assert points[0].year == 2022
@@ -148,8 +160,10 @@ class TestFinancialTimeseriesValidation:
         assert points[0].value is None
 
     def test_multiple_metrics_are_combined_into_one_flat_list(self):
-        points = ValidatedTimeseries.from_raw({
-            "Revenue": {"2022": 100.0},
-            "EBITDA": {"2022": 50.0, "2023E": 60.0},
-        })
+        points = ValidatedTimeseries.from_raw(
+            {
+                "Revenue": {"2022": 100.0},
+                "EBITDA": {"2022": 50.0, "2023E": 60.0},
+            }
+        )
         assert len(points) == 3

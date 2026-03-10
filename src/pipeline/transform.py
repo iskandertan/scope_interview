@@ -17,7 +17,6 @@ import math
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, ValidationError, field_validator, model_validator
 from sqlalchemy.orm import Session
@@ -98,7 +97,8 @@ def validate_raw_data(kv: dict) -> None:
     multi = [k for k in kv if k in _KV_FIELD_MAP and len(kv[k]) > 1]
     if multi:
         raise ValueError(
-            f"Scalar field(s) with multiple values (add to _KV_SPECIAL_KEYS?): {sorted(multi)}"
+            "Scalar field(s) with multiple values "
+            f"(add to _KV_SPECIAL_KEYS?): {sorted(multi)}"
         )
 
 
@@ -169,28 +169,28 @@ class ValidatedAssessment(BaseModel):
     """Validating data from raw.sheet.assessment JSON column."""
 
     entity_name: str
-    corporate_sector: Optional[str] = None
-    country: Optional[str] = None
-    currency: Optional[str] = None
-    accounting_principles: Optional[str] = None
-    fiscal_year_end_month: Optional[str] = None
-    segmentation_criteria: Optional[str] = None
+    corporate_sector: str | None = None
+    country: str | None = None
+    currency: str | None = None
+    accounting_principles: str | None = None
+    fiscal_year_end_month: str | None = None
+    segmentation_criteria: str | None = None
     rating_methodologies_applied: list[str] = []
     industry_risks: list[IndustryRisk] = []
     # Rating profiles
-    business_risk_profile: Optional[str] = None
-    blended_industry_risk_profile: Optional[str] = None
-    competitive_positioning: Optional[str] = None
-    market_share: Optional[str] = None
-    diversification: Optional[str] = None
-    operating_profitability: Optional[str] = None
-    sector_factor_1: Optional[str] = None
-    sector_factor_2: Optional[str] = None
-    financial_risk_profile: Optional[str] = None
-    leverage: Optional[str] = None
-    interest_cover: Optional[str] = None
-    cash_flow_cover: Optional[str] = None
-    liquidity_adjustment: Optional[str] = None
+    business_risk_profile: str | None = None
+    blended_industry_risk_profile: str | None = None
+    competitive_positioning: str | None = None
+    market_share: str | None = None
+    diversification: str | None = None
+    operating_profitability: str | None = None
+    sector_factor_1: str | None = None
+    sector_factor_2: str | None = None
+    financial_risk_profile: str | None = None
+    leverage: str | None = None
+    interest_cover: str | None = None
+    cash_flow_cover: str | None = None
+    liquidity_adjustment: str | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -287,7 +287,7 @@ class ValidatedTimeseries(BaseModel):
     def strip_metric_name(cls, v: str) -> str:
         return v.strip() if isinstance(v, str) else v
 
-    value: Optional[float] = None
+    value: float | None = None
 
     @classmethod
     def from_raw(cls, ts: dict) -> list["ValidatedTimeseries"]:
@@ -435,7 +435,9 @@ class RawToWarehouseTransformer:
         """True if any company metadata (sector, country, currency,
         accounting principles, fiscal year-end) differs between the DB row
         and the incoming assessment."""
-        return any(getattr(current, f) != getattr(assessment, f) for f in _TRACKED_FIELDS)
+        return any(
+            getattr(current, f) != getattr(assessment, f) for f in _TRACKED_FIELDS
+        )
 
     def _next_version(self, entity_key: int) -> int:
         """Return the next snapshot version number for a company.

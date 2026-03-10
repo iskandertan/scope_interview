@@ -1,13 +1,13 @@
 """Excel sheet processing: splitting sections and nesting industry risks."""
 
-import pytest
 import pandas as pd
+import pytest
 
 from src.pipeline.process_sheet import (
+    SPLIT_MARKER,
     get_split_marker_row_index,
     handle_industry_risk_nesting,
     split_dfs,
-    SPLIT_MARKER,
 )
 
 
@@ -26,7 +26,8 @@ class TestSheetSplitting:
             get_split_marker_row_index(df)
 
     def test_splits_into_kv_and_timeseries(self):
-        """Rows above the marker become key-value pairs; rows below become timeseries."""
+        """Rows above the marker become key-value pairs;
+        rows below become timeseries."""
         df = pd.DataFrame(
             {
                 0: ["Key1", "Key2", SPLIT_MARKER, "Metric", "Revenue"],

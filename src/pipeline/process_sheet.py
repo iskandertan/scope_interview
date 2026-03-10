@@ -8,7 +8,6 @@ import pandas as pd
 from src.config import settings
 from src.pipeline.src_dtypes import SrcRawExcel
 
-
 logger = logging.getLogger(__name__)
 
 SPLIT_MARKER = "[Scope Credit Metrics]"
@@ -30,7 +29,8 @@ def extract_sheet_data(filepath: Path) -> SrcRawExcel:
         # TODO: try "master" lowercase and then raise.
         if "Worksheet named" in str(exc) and f"'{MASTER_SHEET}'" in str(exc):
             logger.warning(
-                f"Worksheet '{MASTER_SHEET}' not found in file '{filepath}', returning empty results."
+                f"Worksheet '{MASTER_SHEET}' not found in "
+                f"'{filepath}', returning empty results."
             )
         raise
 
@@ -53,8 +53,9 @@ def extract_sheet_data(filepath: Path) -> SrcRawExcel:
 def handle_industry_risk_nesting(kv_dict: dict) -> dict:
     """
     Group properties under "Industry Risk" into nested dicts.
-    Everything between "Industry Risk" (excluding) and "Segmentation Criteria" (excluding) is
-    included in the Industry Risk group.
+    Everything between "Industry Risk" (excluding) and
+    "Segmentation Criteria" (excluding) is included in the
+    Industry Risk group.
     """
 
     def norm(k: str) -> str:
