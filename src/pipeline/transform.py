@@ -146,6 +146,12 @@ class IndustryRisk(BaseModel):
     risk_score: str
     weight: float
 
+    @model_validator(mode="before")
+    @classmethod
+    def strip_whitespace(cls, values: dict) -> dict:
+        """Strip leading/trailing whitespace from all string inputs."""
+        return {k: v.strip() if isinstance(v, str) else v for k, v in values.items()}
+
     @field_validator("risk_score")
     @classmethod
     def validate_risk_score(cls, v: str) -> str:
@@ -185,6 +191,12 @@ class ValidatedAssessment(BaseModel):
     interest_cover: Optional[str] = None
     cash_flow_cover: Optional[str] = None
     liquidity_adjustment: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def strip_whitespace(cls, values: dict) -> dict:
+        """Strip leading/trailing whitespace from all string inputs."""
+        return {k: v.strip() if isinstance(v, str) else v for k, v in values.items()}
 
     @field_validator("entity_name", mode="before")
     @classmethod
@@ -244,9 +256,9 @@ class ValidatedAssessment(BaseModel):
         }
 
         # Handling special keys with multiple values
-        fields["rating_methodologies_applied"] = kv.get(
-            "Rating methodologies applied", []
-        )
+        fields["rating_methodologies_applied"] = [
+            s.strip() for s in kv.get("Rating methodologies applied", [])
+        ]
         # Industry risks: list of {name: {score, weight}} dicts
         industry_risks = []
         for entry in kv.get("Industry risk", []):
@@ -269,6 +281,12 @@ class ValidatedTimeseries(BaseModel):
     metric_name: str
     year: int
     is_estimate: bool = False
+
+    @field_validator("metric_name", mode="before")
+    @classmethod
+    def strip_metric_name(cls, v: str) -> str:
+        return v.strip() if isinstance(v, str) else v
+
     value: Optional[float] = None
 
     @classmethod
@@ -395,7 +413,7 @@ class RawToWarehouseTransformer:
         if current and not self._entity_metadata_differs(current, assessment):
             return current.entity_key
 
-        # Close the previous row so we keep a historical record
+        # Make the previous row obsolete but keep for history
         if current:
             current.valid_to = ctime
             current.is_current = False
@@ -421,6 +439,12 @@ class RawToWarehouseTransformer:
         return any(getattr(current, f) != getattr(assessment, f) for f in _SCD2_FIELDS)
 
     def _next_version(self, entity_key: int) -> int:
+        """Return the next snapshot version number for a company.
+
+        Each file upload for the same company produces a new fact_snapshot row
+        with an incrementing version (1, 2, 3, ...). This lets us track how
+        a company's rating assessment evolved across successive uploads.
+        """
         count = (
             self.session.query(FactSnapshot).filter_by(entity_key=entity_key).count()
         )
