@@ -1,8 +1,9 @@
 """Company endpoints."""
 
-from datetime import datetime
+from datetime import datetime, time
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from src.api.dependencies import get_db
@@ -62,19 +63,41 @@ async def compare_companies(
     cutoff: datetime | None = None
     if as_of_date:
         try:
-            cutoff = datetime.fromisoformat(as_of_date)
+            parsed = datetime.fromisoformat(as_of_date)
+            if parsed.time() == time():
+                cutoff = datetime.combine(parsed.date(), time(23, 59, 59))
+            else:
+                cutoff = parsed
         except ValueError:
             raise HTTPException(
                 status_code=400,
                 detail=f"Invalid date format: {as_of_date!r}. Use YYYY-MM-DD.",
             )
 
+    if cutoff:
+        bounds = db.query(
+            func.min(FactSnapshot.snapshot_date),
+            func.max(FactSnapshot.snapshot_date),
+        ).first()
+        earliest, latest = bounds if bounds else (None, None)
+        if earliest and cutoff.date() < earliest.date():
+            raise HTTPException(
+                status_code=400,
+                detail=f"as_of_date {as_of_date!r} is before the earliest snapshot ({earliest.date()}).",
+            )
+        if latest and cutoff.date() > latest.date():
+            raise HTTPException(
+                status_code=400,
+                detail=f"as_of_date {as_of_date!r} is after the latest snapshot ({latest.date()}).",
+            )
+
     results: list[SnapshotOut] = []
     for key in keys:
+        entity_keys = _resolve_entity_keys(db, key)
         query = (
             db.query(FactSnapshot, DimEntity.entity_name)
             .join(DimEntity, FactSnapshot.entity_key == DimEntity.entity_key)
-            .filter(FactSnapshot.entity_key == key, DimEntity.is_current.is_(True))
+            .filter(FactSnapshot.entity_key.in_(entity_keys))
         )
         if cutoff:
             query = query.filter(FactSnapshot.snapshot_date <= cutoff)

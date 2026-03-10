@@ -67,10 +67,45 @@ class TestCompaniesAPI:
             "/companies/compare",
             params={
                 "company_ids": str(sample_snapshot.entity_key),
-                "as_of_date": "2024-12-31",
+                "as_of_date": "2024-06-15",
             },
         )
         assert resp.status_code == 200
+
+    def test_compare_rejects_date_outside_snapshot_range(self, client, sample_snapshot):
+        resp = client.get(
+            "/companies/compare",
+            params={
+                "company_ids": str(sample_snapshot.entity_key),
+                "as_of_date": "2099-01-01",
+            },
+        )
+        assert resp.status_code == 400
+        assert "after the latest snapshot" in resp.json()["detail"]
+
+    def test_compare_rejects_date_before_earliest_snapshot(self, client, sample_snapshot):
+        resp = client.get(
+            "/companies/compare",
+            params={
+                "company_ids": str(sample_snapshot.entity_key),
+                "as_of_date": "2020-01-01",
+            },
+        )
+        assert resp.status_code == 400
+        assert "before the earliest snapshot" in resp.json()["detail"]
+
+    def test_compare_date_on_snapshot_day_is_accepted(self, client, sample_snapshot):
+        """A date matching the exact snapshot day should succeed, not
+        be rejected as out-of-range."""
+        resp = client.get(
+            "/companies/compare",
+            params={
+                "company_ids": str(sample_snapshot.entity_key),
+                "as_of_date": "2024-06-15",
+            },
+        )
+        assert resp.status_code == 200
+        assert len(resp.json()) == 1
 
     def test_compare_rejects_non_numeric_company_ids(self, client):
         assert (
