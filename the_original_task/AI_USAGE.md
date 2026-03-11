@@ -201,6 +201,10 @@ reduce all tests in the test dir to absolute essentials. Optimize all tests for 
 I persoanlly use tests to see how the application is supposed to funcition. For me, it's the way to easily and quickly see the inteded functionality of the app. Do the tests in the current app follow the same approach? If not, make the changes
 ```
 
+```
+Make actual requests to the localhost api and store tehm im sample_outputs.md. The rquirements are in the attached readme.
+```
+
 **Format:** PDF, Markdown, screenshots, or text files
 **Location:** [Provide links or attach files here]
 
