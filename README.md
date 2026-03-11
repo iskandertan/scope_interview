@@ -1,12 +1,14 @@
 # Excelsior
 
-A FastApi application that combines a corporate credit rating data pipeline and a set of API endpoints to serve the processed data . Ingests `.xlsm` files dropped into `./data/`, parses the MASTER sheet, stores raw data in PostgreSQL, validates and transforms into a star-schema warehouse, and exposes everything via FastAPI.
+A FastApi application that combines a corporate credit rating data pipeline and a set of API endpoints to serve the processed data. Ingests `.xlsm` files dropped into `./data/`, parses the MASTER sheet, stores raw data in PostgreSQL, validates and transforms into a star-schema warehouse, and exposes everything via FastAPI.
 
 The application utilises Data Layers concept transitioning data from raw -> warehouse schemas based on the validation logic in `/pipeline/transform.py`
 
 Example responses can be found in [sample_outputs.md](/sample_outputs.md)
 
 The original interview task can be found in [the_original_task/README.md](the_original_task/README.md).
+
+AI Usage - [`the_original_task/AI_USAGE.md`](the_original_task/AI_USAGE.md).
 
 ## Quick Start
 
@@ -29,7 +31,7 @@ docker compose down -v && docker compose up --build --watch
 ### Clean Rebuild of everything
 
 ```bash
-docker compose down -v && docker compose rm -f -v && docker compose down --rmi all && docker compose build --no-cache && docker compose up -d
+docker compose down -v && docker compose rm -f -v && docker compose down --rmi all && docker compose build --no-cache && docker compose up --watch
 ```
 
 ### Run Tests Locally
@@ -53,7 +55,7 @@ src/
 
 tests/                    # pytest — unit + integration (SQLite-backed)
 data/                     # Drop .xlsm files here; pipeline picks them up
-data/debug/               # Parsed Excel sheets dumped here on first run
+data/debug/               # Visualising DataFrames to debug raw ingestion
 the_original_task/        # Original assignment brief + AI_USAGE.md
 ```
 
@@ -62,6 +64,8 @@ the_original_task/        # Original assignment brief + AI_USAGE.md
 ## API Endpoints
 
 All endpoints return Pydantic-validated JSON. Schemas in `src/api/schemas.py`.
+
+To make test requests use the `/docs` endpoint.
 
 ### Companies (`src/api/routes/companies.py`)
 | Method | Path | Description |
@@ -87,15 +91,6 @@ All endpoints return Pydantic-validated JSON. Schemas in `src/api/schemas.py`.
 | GET | `/uploads/{id}` | File metadata for a specific upload |
 | GET | `/uploads/{id}/details` | Upload with linked snapshot info (data lineage) |
 | GET | `/uploads/{id}/file` | Download original source file |
-
-```bash
-# Example calls
-curl localhost:8000/companies
-curl localhost:8000/companies/1/history
-curl "localhost:8000/companies/compare?company_ids=1,2&as_of_date=2025-06-01"
-curl "localhost:8000/snapshots?sector=Corporates&country=Germany"
-curl localhost:8000/uploads/1/details
-```
 
 ---
 
@@ -193,12 +188,6 @@ uv python pin 3.12 && uv sync && docker compose up --build
 ## Tech Stack
 
 FastAPI, PostgreSQL 15, SQLAlchemy 2, Pydantic, pandas, uv, pytest, Docker.
-
----
-
-## AI Usage
-
-See [`the_original_task/AI_USAGE.md`](the_original_task/AI_USAGE.md).
 
 ---
 
