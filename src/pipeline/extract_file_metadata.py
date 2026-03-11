@@ -27,7 +27,6 @@ def get_metadata(file_path: Path) -> SrcFileMetadata:
         file_path.stat().st_ctime, tz=datetime.timezone.utc
     ).replace(tzinfo=None)
 
-    # TODO: tests for return types
     return SrcFileMetadata(
         fname=file_path.name,
         ctime=ctime_utc_naive,

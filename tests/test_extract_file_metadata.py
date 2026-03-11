@@ -1,25 +1,26 @@
-"""Uploaded files are fingerprinted for deduplication and audit."""
-
 from datetime import datetime
 
 import pytest
 
 from src.pipeline.extract_file_metadata import get_metadata, get_sha3_256
+from src.pipeline.src_dtypes import SrcFileMetadata
 
 
-class TestUploadedFileIngestion:
-    def test_uploaded_file_is_fingerprinted_for_deduplication(self, tmp_path):
-        """Each file receives a SHA3-256 fingerprint so
-        re-uploads of the same file can be detected."""
+class TestExtractingFileMetadata:
+    def test_get_metadata_returns_src_file_metadata(self, tmp_path):
+        f = tmp_path / "data.xlsm"
+        f.write_bytes(b"xlsx data")
+        assert isinstance(get_metadata(f), SrcFileMetadata)
+
+    def tests_duplicate_files_same_hash(self, tmp_path):
         f = tmp_path / "data.xlsm"
         f.write_bytes(b"xlsx data")
         fingerprint = get_sha3_256(f)
 
         assert len(fingerprint) == 64
-        assert fingerprint == get_sha3_256(f)  # same file always yields the same hash
+        assert fingerprint == get_sha3_256(f)
 
     def test_file_metadata_captures_name_and_timestamp(self, tmp_path):
-        """On upload, the app records the filename and the file's creation time."""
         f = tmp_path / "data.xlsm"
         f.write_bytes(b"xlsx data")
         meta = get_metadata(f)
@@ -29,6 +30,5 @@ class TestUploadedFileIngestion:
         assert len(meta.sha3_256) == 64
 
     def test_file_path_must_be_provided_as_path_object(self):
-        """Raw string paths are rejected — callers must resolve the file path first."""
         with pytest.raises(ValueError, match="Expected a Path"):
             get_metadata("/some/string/path")  # type: ignore

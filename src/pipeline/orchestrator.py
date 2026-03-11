@@ -21,7 +21,7 @@ async def run_pipeline() -> None:
 
     # Processing raw data
     for f in data_dir.glob("*.xls*"):  # TODO: any excel file?
-        metadata: SrcFileMetadata = get_metadata(f)  # TODO: value of the metadata cls?
+        metadata: SrcFileMetadata = get_metadata(f)
         raw_excel: SrcRawExcel = extract_sheet_data(data_dir / f)
         logger.debug(
             f"\nMetadata:\n{metadata}\nKV_DICT:\n{raw_excel.key_values}\nTS_DICT:\n{raw_excel.timeseries}\n"
@@ -58,7 +58,7 @@ def populate_raw_layer(metadata: SrcFileMetadata, raw_excel: SrcRawExcel, fpath:
     """Opens a transaction to populate class FileMetadata and class RawExcel tables.
     Rollback on any exception."""
     # TODO: dealing with and detecting rollbacks.
-    with SessionLocal.begin() as session:  # TODO: this rollbacks on Exceptions?
+    with SessionLocal.begin() as session: 
         # FileMetadata record
         if metadata.existing(session):
             logger.debug(f"Skipping {fpath.name} - already ingested")
