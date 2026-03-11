@@ -14,6 +14,8 @@ The original interview task can be found in [the_original_task/README.md](the_or
 docker compose up --build --watch
 ```
 
+The app will restart automatically with changes to `watch:` folders in `docker-compose.yml`
+
 `uv run pytest tests/ -v` runs before uvicorn starts — the API only comes up if all tests pass.
 
 - API: `http://localhost:8000`
@@ -49,20 +51,6 @@ data/                     # Drop .xlsm files here; pipeline picks them up
 data/debug/               # Parsed Excel sheets dumped here on first run
 the_original_task/        # Original assignment brief + AI_USAGE.md
 ```
-
----
-
-### Data Models
-
-#### Raw layer. Raw and file_uploads schemas
-
-![alt text](</screenshots/raw_layer.png>)
-
-#### Warehouse layer/schema
-
-![alt text](</screenshots/warehouse_schema.png>)
-
-
 
 ---
 
@@ -128,6 +116,18 @@ curl localhost:8000/pipeline/quality-report
 
 All schemas and tables are created at app startup via `init_db()` in `src/db/init_db.py`.
 
+
+#### Raw layer. Raw and file_uploads schemas
+
+![alt text](</screenshots/raw_layer.png>)
+
+#### Warehouse layer/schema
+
+![alt text](</screenshots/warehouse_schema.png>)
+---
+
+
+
 ### Data Flow
 
 ```
@@ -192,6 +192,7 @@ PIPELINE_INTERVAL=10    # seconds, optional
 
 **Python version sync:** `.python-version` is the single source of truth. Both Dockerfiles read it at build time.
 
+Upgrading python version is possible by simply running
 ```bash
 uv python pin 3.12 && uv sync && docker compose up --build
 ```
@@ -218,13 +219,9 @@ uv python pin 3.12 && uv sync && docker compose up --build
 
 ## Tech Stack
 
-FastAPI, PostgreSQL 15, SQLAlchemy 2, Pydantic, openpyxl (via pandas[excel]), uv, pytest, Docker.
+FastAPI, PostgreSQL 15, SQLAlchemy 2, Pydantic, pandas, uv, pytest, Docker.
 
 ---
-
-## Sample Outputs
-
-See [`sample_outputs.md`](sample_outputs.md) for 14 API call examples with responses, a data quality report, and a pipeline execution log.
 
 ## AI Usage
 
@@ -233,26 +230,26 @@ See [`the_original_task/AI_USAGE.md`](the_original_task/AI_USAGE.md). Tools used
 ---
 
 ## What I Would Change
+Following the requirements given in the original task, I understood that I must commit to a monolith application. 
 
-**Architecture:** Break the FastAPI monolith into **Airflow → DWH → FastAPI**.
+Another obvious thing that is missing is response caching. Responses for HTTP requests need to be cached based on timer or LRU logic minimizing network communication.
+
+**Architecture:** Break the FastAPI monolith. The pipeline and httpresponse endpoints are two distinct components that should be separated into two different software components. Something like Airflow would fit well here for running the pipeline and managing layer transitions. It would also provide observability, robustness and a GUI. 
 - **Airflow:** watches `./data/`, launches DAGs per new file, manages ETL and data layer transitions.
 - **FastAPI:** read-only data access + response caching only.
 
-This separates orchestration from serving and makes the pipeline independently scalable, observable, and recoverable.
 
-**Error handling:** Remove any code that raises unrecoverable exceptions, since it blocks the entire app. Pipeline failures should be captured and reported, never crash the server.
+**Error handling:** Remove any code that raises unrecoverable exceptions, since it blocks the entire app. Pipeline failures should be captured and reported, never crash the server. There are a bunch of `raise` statements in this codebase. Put here for development and debugging purposes. All of these statements need to be handled before the application is prod ready. 
 
-**CI/CD:** Add pre-commit hooks (ruff, unused import removal), test gates, and automated deployment.
+**CI/CD:** Add pre-commit hooks for linting, formatting, testing etc. `ruff` is a good starting point.
 
-**Dependency management:** Separate `dev` dependencies (ruff, pytest) from production via uv extras.
+**Dependency management:** Separate `dev` dependencies (ruff, pytest) from production via uv extras. There's no need to have a 'heavy' .venv with things that are not needed for prod runtime. 
+
+**Prod Dockerfile:** There's a Dockerfile that is supposed to be used for production runs. It's a good starting point but far from being optimal. The app runs with `Dockerfile.dev`
 
 **Database:** Add connection pooling (pgpool or SQLAlchemy pool tuning) for production workloads.
 
-**Pipeline:** Add multiprocessing/async concurrency for parallel file processing (`concurrent.futures` or `asyncio`).
+**Pipeline:** Add multiprocessing/async concurrency for parallel file processing. In the case where monolith is a requirement. There definitely needs to be a way to process files without blocking the main event loop and we would also need the ability to handle concurrency in the case of increased file loads. 
 
 **Data model:**
 - Reduce overly-broad `Optional` fields in Pydantic models and ORM — define which fields are truly required.
-- Document data layer definitions and transforms more explicitly.
-- Preserve numerical precision explicitly (Decimal types where appropriate).
-
-**Code quality:** Remove AI-generated comments that add no value; code should be readable with minimal docstrings.
