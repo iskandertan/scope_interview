@@ -8,35 +8,44 @@ Please complete the sections below honestly. Using AI tools is **acceptable and 
 
 ## 1. AI Tools Used
 Claude Opus 4.6
-Claude Haiku 4.5
+Claude Sonnet 4.6
+GPT 5.2
+VS Code autocomplete
 
 
 ## 2. Components Assisted
 Check which parts received AI assistance:
 
-- [ ] Data extraction logic (Excel parsing, MASTER sheet)
-- [ ] Data modeling design (ERD, table schemas, SCD Type 2)
-- [ ] ETL pipeline implementation
-- [ ] Data validation framework
-- [ ] API endpoint development (FastAPI)
-- [ ] Docker/Docker Compose configuration
-- [ ] SQL queries and migrations
-- [ ] Testing (unit/integration tests)
-- [ ] Documentation (README, comments)
-- [ ] Debugging specific issues
+- [+] Data extraction logic (Excel parsing, MASTER sheet)
+- [+] Data modeling design (ERD, table schemas, SCD Type 2)
+- [+] ETL pipeline implementation
+- [+] Data validation framework
+- [+] API endpoint development (FastAPI)
+- [+] Docker/Docker Compose configuration
+- [+] SQL queries and migrations
+- [+] Testing (unit/integration tests)
+- [+] Documentation (README, comments)
+- [+] Debugging specific issues
 - [ ] Other: ___________
 
 
 ## 3. Detailed Description
 For each major component, describe how AI assisted.
 
-1. Create file structure and add boilerplate.
+It was used to generate a lot of boilerplate that is required for the codebase to function. I usually have an idea of what I want to see and direct ai towards that vision. The below chat history/logs are not complete since there were many many more requests. Many of those requests could've been replaced by google searches. Others were more towards directing the ai towards something that I wanted. The logs I provided were usually starting points or my first interaction with the bot for a major component. 
+
+Since this is a git repository you are encouraged to take a look at my commit structure. Major ai usage came with ai disclosure in the commit message.
+
+The context provided to the chat matters. Some queries that I saved in the below section may seem like random or out of place when not accounting for the files passed as context to the chat. 
+
+I have read all of the code being generated and made necessary modifications. I can honestly say that I am the owner of this repository and have full knowledge of all of its functionalities. 
+
+One thing of note is that if a commit came with an ai disclosure message, it doesn't mean that all of the commit was authored using ai. Initial things, yes. But I take full credit/blame for the implemntation logic. Everything happening in this repository is intentional.
 
 
 ## 4. Chat History / Logs
 Attach or link to chat history logs showing AI interactions.
 
-1. File structure and boilerplate: (following the request + readme.md upload in a different chat)
 ```
 I want this folder structure for my project. Keep the original task
 project/
@@ -205,6 +214,10 @@ I persoanlly use tests to see how the application is supposed to funcition. For 
 Make actual requests to the localhost api and store tehm im sample_outputs.md. The rquirements are in the attached readme.
 ```
 
+```
+I need you to create a readme for this project. The readme should help navigate the repository. Address all todos from todos md in that new readme. Add what i would change section as well. Mention how this repo is supposed to be used. Add relevant development commands. Document endpoints. Document tables. Be very concise. Have as few words as possible while getting the point across.
+```
+
 **Format:** PDF, Markdown, screenshots, or text files
 **Location:** [Provide links or attach files here]
 
@@ -215,20 +228,31 @@ Make actual requests to the localhost api and store tehm im sample_outputs.md. T
 Reflect on your AI usage:
 
 **What did AI do well?**
+Generating the boilerplate. Generating tests. I was actually impressed by the Claudes ability to write pytest fixtures imitating the database and having cleaner tests because of that.
+
+It handled the initial proposal for data models really well. Being able to tell what's required and propose very reasonable initial suggestions for the table structure in the warehouse layer. 
 
 **What did you need to correct or override?**
+Pretty much everything. I had to review all content that was generated and make sure it's aligned with my vision for the codebase.
 
 **What did you implement entirely on your own?**
+Regarding the python code? Probably nothing. Since I used AI as a replacement for google searches pretty much everywhere. If I don't remember a syntax, I would just say "do bla bla here". 
+
+All architectural ideas are mine. I only used AI to try and find holes in them. I knew how I wanted to design the app from the very beginning. All the way down to the decision to use classes and which ones I wanted to have. 
+
 
 **How did AI tools improve your development process?**
+It made things faster. I don't think I would be able to write such an app in such a period of time if I was doing it without ai assitance. Though the concepts it propposed were not new to me, it would still take me much longer to implement them myself.
 
 **Were there any limitations or challenges with AI assistance?**
-
+Hallucinations. Being very verbose. Doing validations everywhere def f(s: str): assert s is type(str) type of things. Bad naming conventions. 
 
 ## 6. Recommendations
 Based on your experience, what advice would you give to others using AI tools for data engineering tasks?
 
+Know what you want to do before doing it. Every task has a stage where the problem space is explored. First, come up with a list of requirements for the project then try to solve the architectural problem yourself. Use ai to prove you wrong and find holes in your approach. Finally, come up with the detailed architecture or vision for the project. Generate all of the boilerplate and go from general to specific. 
 
+Always take special care about readability of the codebase and your understanding of what's going on. Always think about the next PERSON reading your code. 
 
 
 Thank you for your transparency!
