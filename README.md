@@ -14,14 +14,19 @@ The original interview task can be found in [the_original_task/README.md](the_or
 docker compose up --build --watch
 ```
 
-The app will restart automatically with changes to `watch:` folders in `docker-compose.yml`
+The app will restart automatically with changes to `watch:` folders specified in `docker-compose.yml`
 
 `uv run pytest tests/ -v` runs before uvicorn starts — the API only comes up if all tests pass.
 
 - API: `http://localhost:8000`
 - Swagger docs: `http://localhost:8000/docs`
 
-### Clean Rebuild
+### Starting with clean volumes
+``` bash
+docker compose down -v && docker compose up --build --watch
+```
+
+### Clean Rebuild of everything
 
 ```bash
 docker compose down -v && docker compose rm -f -v && docker compose down --rmi all && docker compose build --no-cache && docker compose up -d
@@ -83,14 +88,6 @@ All endpoints return Pydantic-validated JSON. Schemas in `src/api/schemas.py`.
 | GET | `/uploads/{id}/details` | Upload with linked snapshot info (data lineage) |
 | GET | `/uploads/{id}/file` | Download original source file |
 
-### Pipeline (`src/api/routes/pipeline.py`)
-| Method | Path | Description |
-|---|---|---|
-| GET | `/pipeline/runs` | Recent pipeline runs with execution metrics |
-| GET | `/pipeline/runs/latest` | Most recent run with full details |
-| GET | `/pipeline/runs/{id}` | Specific run with quality report |
-| GET | `/pipeline/quality-report` | Data quality report from latest run |
-
 ```bash
 # Example calls
 curl localhost:8000/companies
@@ -98,7 +95,6 @@ curl localhost:8000/companies/1/history
 curl "localhost:8000/companies/compare?company_ids=1,2&as_of_date=2025-06-01"
 curl "localhost:8000/snapshots?sector=Corporates&country=Germany"
 curl localhost:8000/uploads/1/details
-curl localhost:8000/pipeline/quality-report
 ```
 
 ---
@@ -112,7 +108,6 @@ curl localhost:8000/pipeline/quality-report
 | `warehouse` | `dim_entity` | Company dimension — SCD Type 2 for metadata changes |
 | `warehouse` | `fact_snapshot` | Rating assessment per version — methodologies + industry risks as JSON |
 | `warehouse` | `fact_timeseries` | One row per metric × year × snapshot |
-| `pipeline` | `pipeline_run` | Execution metrics, errors, quality report per run |
 
 All schemas and tables are created at app startup via `init_db()` in `src/db/init_db.py`.
 
@@ -130,8 +125,10 @@ All schemas and tables are created at app startup via `init_db()` in `src/db/ini
 
 ### Data Flow
 
+On application startup and every `Settings.pipeline_interval` seconds, run `/src/pipeline` module 
+
 ```
-.xlsm file  →  file_uploads.file_metadata + raw.sheet     (raw layer)
+.xlsm file  →  file_uploads.file_metadata + raw.sheet -> write to raw layer
                          │
                  RawToWarehouseTransformer
                  (Pydantic: ValidatedAssessment + ValidatedTimeseries)
@@ -139,39 +136,15 @@ All schemas and tables are created at app startup via `init_db()` in `src/db/ini
                 warehouse.dim_entity                        (company dimension)
                 warehouse.fact_snapshot                      (versioned rating)
                 warehouse.fact_timeseries                    (metric × year)
-                         │
-                pipeline.pipeline_run                        (execution report)
 ```
+### Abstraction into classes
+For readability and data documentation purposes, data that is being stored in the raw layer is ingested as classes in `/src/pipeline/src_dtypes.py`
 
 ### Validation (Pydantic)
+Validation happens when data is ready to be transitioned from raw into a warehouse schema. As well as on the api responses.
 
-`ValidatedAssessment` and `ValidatedTimeseries` in `src/pipeline/transform.py` enforce:
-
-- `entity_name` must be non-empty
-- Rating scores validated against standard scale (AAA–D)
-- Industry risk weights must be in [0, 1] and sum to 1.0
-- Liquidity adjustment must match `[+-]N notch(es)` format
-- "No data" timeseries values stored as NULL; year keys ending in `E` flagged as estimates
-
----
-
-## Pipeline
-
-The ETL scheduler runs every `PIPELINE_INTERVAL` seconds (default: 10s).
-
-**Stages:** scan `./data/*.xlsm` → SHA3-256 hash → skip if already ingested → extract MASTER sheet → load to `raw` schema → validate via Pydantic → transform to `warehouse` schema → record pipeline run.
-
-Deduplication is content-based (SHA3-256). Renaming a file does not cause re-ingestion.
-
-**Retry:** exponential backoff (base=2s, max 3 attempts) per file. Permanent failures are logged in the quality report.
-
-**Metrics per run:** files scanned/ingested/skipped, transform success/failure counts, timeseries points loaded, validation errors, total duration. Accessible via `/pipeline/quality-report`.
-
-### Excel Parsing (`extract_sheet_data`)
-
-Reads `.xlsm` into a single `dtype=object` DataFrame, drops all-None rows/columns, splits on the row containing `[Scope Credit Metrics]`. The part above the marker is key-value company metadata; below is timeseries. A trailing column of all `Locked` values is dropped.
-
-Debug output is written to `data/debug/<stem>_kv.xlsx` and `data/debug/<stem>_ts.xlsx` on first run.
+* Layer transitions are handled by `class RawToWarehouseTransformer:` in `pipeline/transform.py`
+* Response validation is handled in `api/schemas.py`
 
 ---
 
@@ -225,7 +198,7 @@ FastAPI, PostgreSQL 15, SQLAlchemy 2, Pydantic, pandas, uv, pytest, Docker.
 
 ## AI Usage
 
-See [`the_original_task/AI_USAGE.md`](the_original_task/AI_USAGE.md). Tools used: Claude Opus 4.6, Claude Haiku 4.5.
+See [`the_original_task/AI_USAGE.md`](the_original_task/AI_USAGE.md).
 
 ---
 
