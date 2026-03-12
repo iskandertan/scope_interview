@@ -236,9 +236,11 @@ It handled the initial proposal for data models really well. Being able to tell 
 Pretty much everything. I had to review all content that was generated and make sure it's aligned with my vision for the codebase.
 
 **What did you implement entirely on your own?**
-Regarding the python code? Probably nothing. Since I used AI as a replacement for google searches pretty much everywhere. If I don't remember a syntax, I would just say "do bla bla here". 
+All features received ai assitance. Since I used AI as a replacement for google searches pretty much everywhere. If I don't remember a syntax, I would just say "do <name of operation> here". 
 
-All architectural ideas are mine. I only used AI to try and find holes in them. I knew how I wanted to design the app from the very beginning. All the way down to the decision to use classes and which ones I wanted to have. 
+AI was most useless for raw level parsing implementations.
+
+All architectural ideas and decisions are mine. I only used AI to try and find holes in them. I knew how I wanted to design the app from the very beginning. All the way down to the decision to use classes and which ones I wanted to have. 
 
 
 **How did AI tools improve your development process?**
