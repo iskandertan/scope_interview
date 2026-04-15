@@ -1,5 +1,7 @@
 # Excelsior
 
+This is a solution for a technical round interview at Scope Group.
+
 A FastApi application that combines a corporate credit rating data pipeline and a set of API endpoints to serve the processed data. Ingests `.xlsm` files dropped into `./data/`, parses the MASTER sheet, stores raw data in PostgreSQL, validates and transforms into a star-schema warehouse, and exposes everything via FastAPI.
 
 The application utilises Data Layers concept transitioning data from raw -> warehouse schemas based on the validation logic in `/pipeline/transform.py`
